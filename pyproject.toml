@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "forge-agent"
+version = "1.0.0rc10"
+description = "Forge Agent release-gating and desktop runtime"
+authors = [ { name = "jiangmingyue", email = "782074085@qq.com" } ]
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["pytest"]
