@@ -1,11 +1,49 @@
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.env
-.venv
-dist/
-build/
+*.py[cod]
 *.egg-info/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+build/
+dist/
+
+# Local runtime state
+*.sqlite
+*.sqlite3
+*.db
+forge-agent.toml
+.forge-*/
+.forge-agent*/
+
+# Node / Tauri
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store/
+desktop/forge-agent-desktop/src-tauri/target/
+desktop/forge-agent-desktop/dist/
+desktop/forge-agent-desktop/.tauri/
+
+# Secrets and signing artifacts
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.mobileprovision
+*.jks
+*.keystore
+*.asc
+
+# OS / editor
 .DS_Store
+Thumbs.db
+.idea/
+.vscode/
