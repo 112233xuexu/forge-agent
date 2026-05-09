@@ -1,0 +1,27 @@
+{
+  "goal": "帮我整理这个文件夹，找出发票和收据，按月份归类，并给我一份清单",
+  "workspace": ".forge-agent/demo-file-organizer",
+  "inbox": ".forge-agent/demo-file-organizer/inbox",
+  "organized": ".forge-agent/demo-file-organizer/organized",
+  "manifest_path": ".forge-agent/demo-file-organizer/manifest.json",
+  "created_skill": true,
+  "reuse_proven": true,
+  "moved_files_count": 5,
+  "audit": [
+    "created sandbox files",
+    "created or selected local skill",
+    "requested approval before moving files",
+    "recorded approval decision",
+    "organized invoice and receipt files by month",
+    "ran a second batch to prove skill reuse",
+    "wrote manifest.json"
+  ],
+  "evidence_files": [
+    ".forge-agent/demo-file-organizer/manifest.json",
+    ".forge-agent/demo-file-organizer/approvals.jsonl",
+    ".forge-agent/demo-file-organizer/skills/index.jsonl",
+    ".forge-agent/demo-file-organizer/organized/2026-01/",
+    ".forge-agent/demo-file-organizer/organized/2026-02/",
+    ".forge-agent/demo-file-organizer/organized/2026-03/"
+  ]
+}
