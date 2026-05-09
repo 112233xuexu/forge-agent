@@ -5,21 +5,29 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "forge-agent"
 version = "1.0.0rc10"
-description = "Experimental agent runtime, CLI, governance, and desktop release-gating toolkit."
+description = "Zero-configuration skill autopilot for ordinary-user local automation."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
 authors = [{ name = "jiangmingyue" }]
-keywords = ["agent", "automation", "cli", "runtime", "desktop", "governance"]
+keywords = ["agent", "automation", "skills", "cli", "local-first", "approval", "audit"]
 classifiers = [
   "Development Status :: 4 - Beta",
+  "Intended Audience :: End Users/Desktop",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Topic :: Office/Business",
+  "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
+
+[project.urls]
+Homepage = "https://github.com/112233xuexu/forge-agent"
+Repository = "https://github.com/112233xuexu/forge-agent"
+Issues = "https://github.com/112233xuexu/forge-agent/issues"
 
 [project.scripts]
 forge-agent = "forge_agent.cli:cli_entrypoint"
