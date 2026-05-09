@@ -1,22 +1,29 @@
 # Forge Agent
 
-Forge Agent is an experimental self-growing agent runtime for ordinary-user automation. Users submit goals through a single `forge-agent do` entrypoint, while the runtime coordinates session state, memory, tool routing, scheduling, recovery, governance, audit trails, and release evidence.
+Forge Agent is an experimental local-first automation agent for ordinary users, solo operators, and open-source maintainers. Users submit goals through a single `forge-agent do` entrypoint, while the runtime direction is to coordinate session state, memory, tool routing, scheduling, approvals, recovery, governance, audit trails, and release evidence.
 
-This repository is intended as an open-source release of the Forge Agent RC10 source tree.
+The project is being developed toward a usable open-source core and a future commercial desktop/pro product. The near-term focus is not hype: it is a reliable local CLI, transparent task history, approval-gated actions, public demos, and evidence-backed release claims.
 
-## What is included
+## Product promise
 
-- Python runtime and CLI package under `src/forge_agent`.
-- Desktop shell source based on Tauri.
-- Tests, release check scripts, and release evidence reports.
-- Documentation for architecture, operator usage, desktop release, and validation.
+Describe a goal once. Forge Agent should plan the work, ask before risky actions, record evidence, and let the user resume later.
 
-## Status
+## Current status
 
 - Package version: `1.0.0rc10`.
 - CLI entrypoint: `forge-agent`.
 - License: MIT.
-- Release honesty: this source release does not claim signed installers or production field reliability.
+- Repository visibility: public.
+- Release honesty: this source release does not claim signed installers, production telemetry, or broad field reliability.
+- Commercial direction: open-source local core first, desktop/pro layer later.
+
+## What is included
+
+- Python runtime and CLI package under `src/forge_agent`.
+- Product, MVP, commercialization, and architecture documentation.
+- GitHub Actions smoke CI.
+- Security policy and contribution guide.
+- Roadmap issues for MVP, demo, and security hardening.
 
 ## Quick start
 
@@ -25,6 +32,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e .
 forge-agent --help
+forge-agent do "draft a project status note"
 ```
 
 On Windows PowerShell:
@@ -34,27 +42,27 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -e .
 forge-agent --help
+forge-agent do "draft a project status note"
 ```
 
 ## Validation
 
-Useful local checks:
-
 ```bash
 python -m compileall src tests
-python -m pytest --collect-only -q
 python -m pytest -q
 ```
 
-The RC10 source package collected 517 pytest tests in the prepared environment. Full release evidence is preserved in the release notes and installer report files from the source package.
+## Roadmap
 
-## Open-source roadmap
+- [MVP Roadmap](docs/MVP_ROADMAP.md)
+- [Product Strategy](docs/PRODUCT_STRATEGY.md)
+- [Commercialization Plan](docs/COMMERCIALIZATION_PLAN.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [OpenAI OSS Application Notes](docs/OPENAI_OSS_APPLICATION.md)
 
-- Keep release claims evidence-backed.
-- Improve the public demo and screenshots.
-- Harden desktop packaging and signing evidence.
-- Expand examples for agent runtime, governance, and gateway workflows.
-- Use Codex-style review to triage issues, write tests, and improve security posture.
+## OpenAI Codex for OSS fit
+
+Forge Agent is being structured as a real maintainer workflow project: public repository, visible roadmap, CI, security policy, issue triage, release evidence, and a clear reason for Codex assistance. Codex would be used for PR review, issue triage, test expansion, security hardening, and release workflow maintenance.
 
 ## Repository owner
 
