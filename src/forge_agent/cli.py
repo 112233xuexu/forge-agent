@@ -26,6 +26,9 @@ def build_parser() -> argparse.ArgumentParser:
     tasks_cmd.add_argument("--limit", type=int, default=20, help="maximum tasks to show")
     tasks_cmd.add_argument("--json", action="store_true", help="print JSON instead of table text")
 
+    skills_cmd = sub.add_parser("skills", help="list local reusable skills")
+    skills_cmd.add_argument("--json", action="store_true", help="print JSON instead of table text")
+
     doctor_cmd = sub.add_parser("doctor", help="print workspace health")
     doctor_cmd.add_argument("--json", action="store_true", help="print JSON instead of human text")
     return parser
@@ -57,7 +60,21 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("No tasks yet. Run `forge-agent do \"your goal\"` to create one.")
             return 0
         for task in tasks:
-            print(f"{task.created_at}  {task.status:<10}  {task.task_id}  {task.goal}")
+            skill = task.evidence.get("skill", {}) if isinstance(task.evidence, dict) else {}
+            skill_name = skill.get("name", "no skill") if isinstance(skill, dict) else "no skill"
+            print(f"{task.created_at}  {task.status:<10}  {task.task_id}  {task.goal}  [skill: {skill_name}]")
+        return 0
+
+    if args.command == "skills":
+        skills = runtime.list_skills()
+        if args.json:
+            print(json.dumps([skill.to_dict() for skill in skills], ensure_ascii=False, indent=2))
+            return 0
+        if not skills:
+            print("No skills yet. Run `forge-agent do \"your goal\"` and Forge Agent will create one if needed.")
+            return 0
+        for skill in skills:
+            print(f"{skill.status:<10} uses={skill.uses:<3} success={skill.success_count:<3} {skill.skill_id}  {skill.name}")
         return 0
 
     if args.command == "doctor":
@@ -68,6 +85,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"Workspace: {status.workspace}")
             print(f"Ready: {status.ready}")
             print(f"Tasks: {status.task_count}")
+            print(f"Skills: {status.skill_count}")
             for message in status.messages:
                 print(f"- {message}")
         return 0 if status.ready else 1
