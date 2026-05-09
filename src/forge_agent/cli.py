@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Sequence
 
 from . import __version__
+from .approvals import ApprovalLedger
+from .file_organizer_demo import run_file_organizer_demo
 from .runtime import ForgeRuntime
 
 
@@ -28,6 +30,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     skills_cmd = sub.add_parser("skills", help="list local reusable skills")
     skills_cmd.add_argument("--json", action="store_true", help="print JSON instead of table text")
+
+    approvals_cmd = sub.add_parser("approvals", help="list or decide approval requests")
+    approvals_sub = approvals_cmd.add_subparsers(dest="approvals_command")
+    approvals_list = approvals_sub.add_parser("list", help="list approval requests")
+    approvals_list.add_argument("--json", action="store_true", help="print JSON instead of table text")
+    approvals_decide = approvals_sub.add_parser("decide", help="approve or deny a request")
+    approvals_decide.add_argument("approval_id", help="approval request id")
+    approvals_decide.add_argument("--decision", required=True, choices=["approved", "denied"], help="approval decision")
+
+    demo_cmd = sub.add_parser("demo", help="run an ordinary-user demo")
+    demo_cmd.add_argument("--kind", default="file-organizer", choices=["file-organizer"], help="demo kind")
+    demo_cmd.add_argument("--json", action="store_true", help="print JSON only")
 
     doctor_cmd = sub.add_parser("doctor", help="print workspace health")
     doctor_cmd.add_argument("--json", action="store_true", help="print JSON instead of human text")
@@ -75,6 +89,46 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
         for skill in skills:
             print(f"{skill.status:<10} uses={skill.uses:<3} success={skill.success_count:<3} {skill.skill_id}  {skill.name}")
+        return 0
+
+    if args.command == "approvals":
+        ledger = ApprovalLedger(Path(args.workspace))
+        if args.approvals_command == "list":
+            approvals = ledger.list()
+            if args.json:
+                print(json.dumps([item.to_dict() for item in approvals], ensure_ascii=False, indent=2))
+                return 0
+            if not approvals:
+                print("No approval requests yet.")
+                return 0
+            for item in approvals:
+                print(f"{item.status:<9} {item.approval_id} {item.risk}: {item.action}")
+            return 0
+        if args.approvals_command == "decide":
+            item = ledger.decide(args.approval_id, args.decision)
+            print(json.dumps(item.to_dict(), ensure_ascii=False, indent=2))
+            return 0
+        approvals_cmd = next(action for action in parser._subparsers._actions if getattr(action, "dest", None) == "command")
+        approvals_parser = approvals_cmd.choices["approvals"]
+        approvals_parser.print_help()
+        return 0
+
+    if args.command == "demo":
+        result = run_file_organizer_demo(Path(args.workspace) / "demo-file-organizer")
+        if args.json:
+            print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+            return 0
+        print("Forge Agent ordinary-user demo: file organizer")
+        print(f"Goal: {result.goal}")
+        print(f"Workspace: {result.workspace}")
+        print(f"Approval: {result.approval_id}")
+        print(f"Skill: {result.skill_name} ({result.skill_id})")
+        print(f"Created skill: {result.created_skill}")
+        print(f"Reuse proven: {result.reuse_proven}")
+        print(f"Manifest: {result.manifest_path}")
+        print("Moved files:")
+        for item in result.moved_files:
+            print(f"- {item['source']} -> {item['destination']}")
         return 0
 
     if args.command == "doctor":
