@@ -1,4 +1,6 @@
 from forge_agent import ForgeRuntime, __version__
+from forge_agent.approvals import ApprovalLedger
+from forge_agent.file_organizer_demo import run_file_organizer_demo
 
 
 def test_version():
@@ -48,3 +50,19 @@ def test_doctor_reports_missing_workspace(tmp_path):
     assert status.task_count == 0
     assert status.skill_count == 0
     assert "forge-agent init" in " ".join(status.messages)
+
+
+def test_approval_ledger_records_decision(tmp_path):
+    ledger = ApprovalLedger(tmp_path)
+    item = ledger.request(action="move demo files", risk="file_move", explanation="demo approval")
+    decided = ledger.decide(item.approval_id, "approved")
+    assert decided.status == "approved"
+    assert ledger.list()[0].approval_id == item.approval_id
+
+
+def test_file_organizer_demo_proves_reuse(tmp_path):
+    result = run_file_organizer_demo(tmp_path / "demo")
+    assert result.created_skill is True
+    assert result.reuse_proven is True
+    assert len(result.moved_files) == 5
+    assert result.manifest_path.endswith("manifest.json")
