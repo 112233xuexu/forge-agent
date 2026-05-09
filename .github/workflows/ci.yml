@@ -7,12 +7,34 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e . pytest
-      - run: python -m compileall src tests
-      - run: python -m pytest -q
+      - name: Compile source and tests
+        run: python -m compileall src tests
+      - name: Run public runtime and demo tests
+        run: python -m pytest -q tests/test_public_runtime.py
+      - name: Run ordinary-user file organizer demo
+        run: forge-agent demo --kind file-organizer --json
+      - name: Verify demo evidence
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = Path('.forge-agent/demo-file-organizer/manifest.json')
+          assert manifest.exists(), 'demo manifest was not created'
+          data = json.loads(manifest.read_text(encoding='utf-8'))
+          assert data['created_skill'] is True
+          assert data['reuse_proven'] is True
+          assert len(data['moved_files']) == 5
+          assert Path('.forge-agent/demo-file-organizer/approvals.jsonl').exists()
+          assert Path('.forge-agent/demo-file-organizer/skills/index.jsonl').exists()
+          PY
