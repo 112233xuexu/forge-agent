@@ -8,6 +8,9 @@ import json
 import re
 import uuid
 
+SKILL_STATUSES = {"draft", "tested", "validated", "promoted", "deprecated", "quarantined"}
+USABLE_SKILL_STATUSES = {"draft", "tested", "validated", "promoted"}
+
 
 @dataclass
 class Skill:
@@ -23,6 +26,8 @@ class Skill:
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     uses: int = 0
     success_count: int = 0
+    failure_count: int = 0
+    last_used_at: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -41,18 +46,14 @@ class Skill:
             updated_at=str(data.get("updated_at", data.get("created_at", ""))),
             uses=int(data.get("uses", 0)),
             success_count=int(data.get("success_count", 0)),
+            failure_count=int(data.get("failure_count", 0)),
+            last_used_at=data.get("last_used_at"),
             metadata=dict(data.get("metadata", {})),
         )
 
 
 class SkillStore:
-    """Local skill library with automatic draft-skill creation.
-
-    This is the first practical version of Forge Agent's key idea: the user
-    should not have to install skills manually. The runtime searches local
-    skills; when none match, it creates a readable draft skill that can be
-    validated and reused later.
-    """
+    """Local skill library with automatic draft-skill creation and lifecycle controls."""
 
     def __init__(self, workspace: str | Path) -> None:
         self.workspace = Path(workspace)
@@ -71,10 +72,19 @@ class SkillStore:
             if not line.strip():
                 continue
             try:
-                skills.append(Skill.from_dict(json.loads(line)))
+                skill = Skill.from_dict(json.loads(line))
+                if skill.status not in SKILL_STATUSES:
+                    skill.status = "draft"
+                skills.append(skill)
             except (json.JSONDecodeError, KeyError, TypeError, ValueError):
                 continue
         return skills
+
+    def get(self, skill_id: str) -> Skill | None:
+        for skill in self.list():
+            if skill.skill_id == skill_id or skill.skill_id.startswith(skill_id):
+                return skill
+        return None
 
     def find(self, goal: str) -> Skill | None:
         goal_tokens = set(_tokenize(goal))
@@ -84,7 +94,7 @@ class SkillStore:
         for skill in self.list():
             searchable = " ".join([skill.name, skill.description, *skill.triggers])
             score = len(goal_tokens.intersection(_tokenize(searchable)))
-            if score > 0 and skill.status in {"draft", "validated", "promoted"}:
+            if score > 0 and skill.status in USABLE_SKILL_STATUSES:
                 candidates.append((score, skill))
         if not candidates:
             return None
@@ -114,7 +124,7 @@ class SkillStore:
             status="draft",
             created_at=now,
             updated_at=now,
-            metadata={"source": "auto-created", "original_goal": goal.strip()},
+            metadata={"source": "auto-created", "original_goal": goal.strip(), "lifecycle": [f"{now}: created as draft"]},
         )
         self._upsert(skill)
         self._write_skill_file(skill)
@@ -127,15 +137,45 @@ class SkillStore:
         for skill in skills:
             if skill.skill_id == skill_id:
                 skill.uses += 1
+                skill.last_used_at = now
                 if success:
                     skill.success_count += 1
-                if skill.success_count >= 3 and skill.status == "draft":
+                else:
+                    skill.failure_count += 1
+                if skill.success_count >= 1 and skill.status == "draft":
+                    skill.status = "tested"
+                if skill.success_count >= 3 and skill.status in {"draft", "tested"}:
                     skill.status = "validated"
+                if skill.failure_count >= 3 and skill.success_count == 0:
+                    skill.status = "quarantined"
+                lifecycle = list(skill.metadata.get("lifecycle", [])) if isinstance(skill.metadata.get("lifecycle", []), list) else []
+                lifecycle.append(f"{now}: used success={success}; status={skill.status}")
+                skill.metadata["lifecycle"] = lifecycle[-20:]
                 skill.updated_at = now
                 updated = skill
         self._rewrite(skills)
         if updated is not None:
             self._write_skill_file(updated)
+        return updated
+
+    def set_status(self, skill_id: str, status: str, *, reason: str = "manual") -> Skill:
+        if status not in SKILL_STATUSES:
+            raise ValueError(f"unsupported skill status: {status}")
+        skills = self.list()
+        now = datetime.now(timezone.utc).isoformat()
+        updated: Skill | None = None
+        for skill in skills:
+            if skill.skill_id == skill_id or skill.skill_id.startswith(skill_id):
+                skill.status = status
+                skill.updated_at = now
+                lifecycle = list(skill.metadata.get("lifecycle", [])) if isinstance(skill.metadata.get("lifecycle", []), list) else []
+                lifecycle.append(f"{now}: status -> {status} ({reason})")
+                skill.metadata["lifecycle"] = lifecycle[-20:]
+                updated = skill
+        if updated is None:
+            raise KeyError(f"skill not found: {skill_id}")
+        self._rewrite(skills)
+        self._write_skill_file(updated)
         return updated
 
     def _upsert(self, skill: Skill) -> None:
@@ -153,13 +193,17 @@ class SkillStore:
         safe_name = re.sub(r"[^a-zA-Z0-9_.-]+", "-", skill.name.lower()).strip("-") or "skill"
         path = self.skills_dir / f"{safe_name}-{skill.skill_id[:8]}.md"
         steps = "\n".join(f"{idx}. {step}" for idx, step in enumerate(skill.steps, start=1))
+        lifecycle = skill.metadata.get("lifecycle", [])
+        lifecycle_lines = "\n".join(f"- {item}" for item in lifecycle) if isinstance(lifecycle, list) else ""
         path.write_text(
             f"# {skill.name}\n\n"
             f"Status: `{skill.status}`\n\n"
             f"Skill ID: `{skill.skill_id}`\n\n"
+            f"Uses: `{skill.uses}`  Successes: `{skill.success_count}`  Failures: `{skill.failure_count}`\n\n"
             f"## Description\n\n{skill.description}\n\n"
             f"## Triggers\n\n{', '.join(skill.triggers) or 'none'}\n\n"
-            f"## Steps\n\n{steps}\n",
+            f"## Steps\n\n{steps}\n\n"
+            f"## Lifecycle\n\n{lifecycle_lines or 'No lifecycle events yet.'}\n",
             encoding="utf-8",
         )
 
