@@ -1,5 +1,35 @@
 # Changelog
 
+## v1.1.0-ordinary-user-mvp
+
+This upgrade turns Forge Agent's safe demo into a real dry-run-first ordinary-user command.
+
+### Added
+
+- Real file organization command: `forge-agent organize ./invoices`.
+- Dry-run mode by default, moving no real files.
+- Explicit `--approve` mode for actual file movement.
+- Optional `--output` folder.
+- JSON output for automation and review.
+- Approval ledger records for real organize plans.
+- `organize-manifest.json` for approved moves.
+- Tests for dry-run and approved file movement.
+- CI smoke test for real organizer dry-run behavior.
+- Documentation: `docs/V1_1_ORGANIZE_COMMAND.md`.
+
+### Safety model
+
+The organizer never moves real files by default. It previews planned moves first and only moves invoice/receipt-like files when the user explicitly passes `--approve`.
+
+### Validation target
+
+```bash
+python -m compileall src tests
+python -m pytest -q tests/test_public_runtime.py tests/test_organizer.py
+forge-agent demo --kind file-organizer --json
+forge-agent organize ./invoices --json
+```
+
 ## v1.0.0-oss-demo-candidate
 
 This is an open-source demo candidate for Forge Agent's ordinary-user skill autopilot direction.
