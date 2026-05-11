@@ -8,6 +8,7 @@ from typing import Sequence
 from . import __version__
 from .approvals import ApprovalLedger
 from .file_organizer_demo import run_file_organizer_demo
+from .organizer import FileOrganizer
 from .runtime import ForgeRuntime
 
 
@@ -23,6 +24,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     do_cmd = sub.add_parser("do", help="submit a goal to the local runtime")
     do_cmd.add_argument("goal", nargs="+", help="goal text")
+
+    organize_cmd = sub.add_parser("organize", help="organize invoice/receipt files by month; dry-run by default")
+    organize_cmd.add_argument("source", help="folder to scan")
+    organize_cmd.add_argument("--output", help="output folder; defaults to SOURCE/organized")
+    organize_cmd.add_argument("--approve", action="store_true", help="actually move files after previewing the plan")
+    organize_cmd.add_argument("--json", action="store_true", help="print JSON instead of human text")
 
     tasks_cmd = sub.add_parser("tasks", help="list local task history")
     tasks_cmd.add_argument("--limit", type=int, default=20, help="maximum tasks to show")
@@ -63,6 +70,35 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "do":
         result = runtime.do(" ".join(args.goal))
         print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "organize":
+        organizer = FileOrganizer(Path(args.workspace))
+        try:
+            result = organizer.organize_by_month(args.source, output_dir=args.output, approve=args.approve)
+        except FileNotFoundError as exc:
+            print(str(exc))
+            return 2
+        if args.json:
+            print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+            return 0
+        print("Forge Agent file organizer")
+        print(f"Source: {result.source_dir}")
+        print(f"Output: {result.output_dir}")
+        print(f"Mode: {result.mode}")
+        print(f"Approval: {result.approval_id}")
+        print(f"Skill: {result.skill_name} ({result.skill_id})")
+        print(f"Planned moves: {len(result.planned_moves)}")
+        if result.moved_files:
+            print(f"Moved files: {len(result.moved_files)}")
+        if result.manifest_path:
+            print(f"Manifest: {result.manifest_path}")
+        for message in result.messages:
+            print(f"- {message}")
+        for item in result.planned_moves[:20]:
+            print(f"  {item.source} -> {item.destination}")
+        if len(result.planned_moves) > 20:
+            print(f"  ... and {len(result.planned_moves) - 20} more")
         return 0
 
     if args.command == "tasks":
