@@ -43,9 +43,27 @@ The demo creates a safe sandbox and shows the core loop:
 
 No real user files are touched by the demo.
 
+## v1.1 real organize command
+
+The v1.1 branch upgrades the demo into a real ordinary-user command. It is safe by default: dry-run previews the plan and moves nothing.
+
+```bash
+forge-agent organize ./invoices
+forge-agent organize ./invoices --json
+```
+
+Move files only after explicit approval:
+
+```bash
+forge-agent organize ./invoices --approve
+```
+
+The command creates an approval record, uses the local skill store, and writes `organize-manifest.json` after approved moves.
+
 See also:
 
 - [Ordinary-user demo guide](docs/ORDINARY_USER_DEMO.md)
+- [v1.1 organize command](docs/V1_1_ORGANIZE_COMMAND.md)
 - [Demo output sample](docs/DEMO_OUTPUT_SAMPLE.json)
 - [Release candidate notes](docs/RELEASE_CANDIDATE.md)
 - [OpenAI OSS / Pro readiness notes](docs/PRO_APPLICATION_READY.md)
@@ -55,6 +73,7 @@ See also:
 ```bash
 forge-agent init
 forge-agent do "draft a project status note"
+forge-agent organize ./invoices
 forge-agent tasks
 forge-agent skills
 forge-agent approvals list
@@ -68,6 +87,7 @@ forge-agent doctor
 - License: MIT.
 - Repository visibility: public.
 - Demo: ordinary-user file organizer with approval ledger and skill reuse proof.
+- v1.1 feature branch: real dry-run-first organize command.
 - Release honesty: this source release does not claim signed installers, production telemetry, or broad field reliability.
 
 ## What is included
@@ -76,18 +96,20 @@ forge-agent doctor
 - Local skill store with automatic skill creation and reuse.
 - Approval ledger for risky actions.
 - Deterministic file organizer demo.
+- Real dry-run-first organize command on the v1.1 feature branch.
 - Product, MVP, commercialization, architecture, validation, and competitive-analysis docs.
-- GitHub Actions smoke CI and tests for the public runtime/demo path.
+- GitHub Actions smoke CI and tests for the public runtime/demo/organizer path.
 
 ## Validation
 
 ```bash
 python -m compileall src tests
-python -m pytest -q tests/test_public_runtime.py
+python -m pytest -q tests/test_public_runtime.py tests/test_organizer.py
 forge-agent demo --kind file-organizer --json
+forge-agent organize ./invoices --json
 ```
 
-GitHub Actions validates Python 3.11 and 3.12, compile checks, public runtime/demo tests, the file-organizer demo, and demo evidence files.
+GitHub Actions validates Python 3.11 and 3.12, compile checks, public runtime/demo tests, organizer tests, the file-organizer demo, real organizer dry-run, and demo evidence files.
 
 The original RC10 source package contains a larger runtime and test suite. The public repository is being normalized around the ordinary-user product surface first.
 
