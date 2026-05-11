@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.2.0-skill-lifecycle
+
+This upgrade makes Forge Agent skills manageable assets rather than invisible runtime artifacts.
+
+### Added
+
+- Skill lifecycle states: `draft`, `tested`, `validated`, `promoted`, `deprecated`, `quarantined`.
+- Automatic status changes from successful and failed skill usage.
+- Manual CLI controls:
+  - `forge-agent skills show <skill_id>`
+  - `forge-agent skills test <skill_id>`
+  - `forge-agent skills validate <skill_id>`
+  - `forge-agent skills promote <skill_id>`
+  - `forge-agent skills deprecate <skill_id>`
+  - `forge-agent skills quarantine <skill_id>`
+- Lifecycle logs in generated skill markdown files.
+- Tests for automatic promotion, quarantine behavior, manual controls, and matching exclusion.
+- CI smoke test for skill lifecycle CLI commands.
+- Documentation: `docs/V1_2_SKILL_LIFECYCLE.md`.
+
+### Product meaning
+
+Skills can now be created, reused, tested, validated, promoted, deprecated, or quarantined. This is a required step toward a future skill cloud/library because only trusted skills should be shared.
+
 ## v1.1.0-ordinary-user-mvp
 
 This upgrade turns Forge Agent's safe demo into a real dry-run-first ordinary-user command.
@@ -25,7 +49,7 @@ The organizer never moves real files by default. It previews planned moves first
 
 ```bash
 python -m compileall src tests
-python -m pytest -q tests/test_public_runtime.py tests/test_organizer.py
+python -m pytest -q tests/test_public_runtime.py tests/test_organizer.py tests/test_skills_lifecycle.py
 forge-agent demo --kind file-organizer --json
 forge-agent organize ./invoices --json
 ```
