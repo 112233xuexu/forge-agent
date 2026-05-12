@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.3.0-rollback
+
+This upgrade adds rollback support for approved organize operations so ordinary users can undo file moves safely.
+
+### Added
+
+- `forge-agent organize-rollback` to rollback the latest approved organize operation.
+- `forge-agent organize-rollback --operation-id <operation_id>` for targeted rollback.
+- Operation manifests under `.forge-agent/operations/`.
+- Latest operation pointer: `.forge-agent/operations/latest-organize.json`.
+- Safe rollback rules that skip instead of overwriting when the original path already exists.
+- Rollback metadata in operation manifests: `rolled_back_at`, `restored_files`, and `skipped_files`.
+- Tests for rollback restoration and safe skip behavior.
+- Documentation: `docs/V1_3_ROLLBACK.md`.
+
+### Product meaning
+
+Forge Agent now supports a safer ordinary-user loop: dry-run, explicit approval, execution, evidence, and rollback.
+
 ## v1.2.0-skill-lifecycle
 
 This upgrade makes Forge Agent skills manageable assets rather than invisible runtime artifacts.
