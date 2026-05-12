@@ -20,8 +20,8 @@ jobs:
       - run: python -m pip install -e . pytest
       - name: Compile source and tests
         run: python -m compileall src tests
-      - name: Run public runtime, demo, organizer, and skill lifecycle tests
-        run: python -m pytest -q tests/test_public_runtime.py tests/test_organizer.py tests/test_skills_lifecycle.py
+      - name: Run public runtime, organizer, lifecycle, and product tests
+        run: python -m pytest -q tests/test_public_runtime.py tests/test_organizer.py tests/test_skills_lifecycle.py tests/test_product_packs.py
       - name: Run ordinary-user file organizer demo
         run: forge-agent demo --kind file-organizer --json
       - name: Run real organizer dry-run smoke test
@@ -57,6 +57,16 @@ jobs:
           )
           forge-agent --workspace /tmp/forge-agent-ci-skill skills validate "$SKILL_ID" --reason "ci validation"
           forge-agent --workspace /tmp/forge-agent-ci-skill skills show "$SKILL_ID" | grep validated
+      - name: Run v1.4-v1.8 product smoke tests
+        run: |
+          forge-agent --workspace /tmp/forge-agent-ci-product make ppt "Forge Agent MVP" --json
+          forge-agent --workspace /tmp/forge-agent-ci-product make report "Forge Agent Validation" --json
+          forge-agent --workspace /tmp/forge-agent-ci-product make news "AI agents" --json
+          forge-agent --workspace /tmp/forge-agent-ci-product make storyboard "Forge Agent demo" --json
+          forge-agent --workspace /tmp/forge-agent-ci-product schedule add "every day 9am" forge-agent organize ~/Downloads --json
+          forge-agent --workspace /tmp/forge-agent-ci-product schedule list --json
+          test -f /tmp/forge-agent-ci-product/artifacts/index.jsonl
+          test -f /tmp/forge-agent-ci-product/schedules.jsonl
       - name: Verify demo evidence
         run: |
           python - <<'PY'
