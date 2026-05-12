@@ -88,7 +88,9 @@ def run_file_organizer_demo(workspace: str | Path = ".forge-agent-demo") -> File
 
     for name, content in _SECOND_BATCH.items():
         (inbox / name).write_text(content, encoding="utf-8")
-    reused_skill, created_second = skill_store.get_or_create_for_goal("请继续整理新来的发票和收据")
+    reused_skill, created_second = skill_store.get_or_create_for_goal(
+        "请继续整理新来的发票和收据，找出发票和收据，按月份归类"
+    )
     moved_second = _organize_invoice_like_files(inbox, organized)
     skill_store.mark_used(reused_skill.skill_id, success=True)
 
