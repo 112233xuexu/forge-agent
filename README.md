@@ -14,8 +14,6 @@ plain command -> intent -> local skill search -> auto-create skill if missing ->
 
 ## 60-second demo
 
-Run the ordinary-user file organizer demo:
-
 ```bash
 python -m venv .venv
 source .venv/bin/activate
@@ -32,45 +30,64 @@ pip install -e .
 forge-agent demo --kind file-organizer
 ```
 
-The demo creates a safe sandbox and shows the core loop:
+The demo creates a safe sandbox and proves automatic skill creation, approval, file organization, evidence, and skill reuse. No real user files are touched by the demo.
 
-1. the user asks to organize invoices and receipts;
-2. Forge Agent creates or selects a reusable skill;
-3. Forge Agent records plain-language approval before moving files;
-4. Forge Agent organizes files by month;
-5. Forge Agent writes `manifest.json`;
-6. Forge Agent runs a second batch to prove skill reuse with `reuse_proven: true`.
+## Product commands
 
-No real user files are touched by the demo.
-
-## v1.1 real organize command
-
-The v1.1 branch upgrades the demo into a real ordinary-user command. It is safe by default: dry-run previews the plan and moves nothing.
+Real dry-run-first file organization:
 
 ```bash
 forge-agent organize ./invoices
-forge-agent organize ./invoices --json
-```
-
-Move files only after explicit approval:
-
-```bash
 forge-agent organize ./invoices --approve
+forge-agent organize-rollback
 ```
 
-The command creates an approval record, uses the local skill store, writes an operation manifest, and can be rolled back.
-
-## v1.3 rollback
-
-Approved organize operations are reversible:
+Operation history:
 
 ```bash
-forge-agent organize-rollback
-forge-agent organize-rollback --operation-id <operation_id>
-forge-agent organize-rollback --json
+forge-agent history list
+forge-agent history show <operation_id>
 ```
 
-Rollback restores files only when safe. It skips instead of overwriting if the original path already exists.
+Schedule registry:
+
+```bash
+forge-agent schedule add "every day 9am" forge-agent organize ~/Downloads
+forge-agent schedule list
+forge-agent schedule pause <task_id>
+forge-agent schedule resume <task_id>
+```
+
+Content skill packs:
+
+```bash
+forge-agent make ppt "project status update"
+forge-agent make report "monthly validation report"
+forge-agent make news "AI agent ecosystem"
+forge-agent make storyboard "30-second product demo"
+```
+
+Skill lifecycle:
+
+```bash
+forge-agent skills
+forge-agent skills show <skill_id>
+forge-agent skills promote <skill_id>
+forge-agent skills quarantine <skill_id>
+```
+
+## Current capability map
+
+- v1.1: real dry-run-first organize command.
+- v1.2: skill lifecycle controls.
+- v1.3: rollback for approved organize operations.
+- v1.4: operation history.
+- v1.5: schedule registry.
+- v1.6: PPT/report artifact generation.
+- v1.7: news brief template generation.
+- v1.8: video storyboard generation.
+
+These v1.4-v1.8 features are local deterministic product surfaces first. They do not yet claim full live news retrieval, real background daemon execution, `.pptx` rendering, voiceover generation, or video rendering.
 
 See also:
 
@@ -78,6 +95,7 @@ See also:
 - [v1.1 organize command](docs/V1_1_ORGANIZE_COMMAND.md)
 - [v1.2 skill lifecycle](docs/V1_2_SKILL_LIFECYCLE.md)
 - [v1.3 rollback](docs/V1_3_ROLLBACK.md)
+- [v1.4-v1.8 product expansion](docs/V1_4_TO_V1_8_PRODUCT_EXPANSION.md)
 - [Demo output sample](docs/DEMO_OUTPUT_SAMPLE.json)
 - [Release candidate notes](docs/RELEASE_CANDIDATE.md)
 - [OpenAI OSS / Pro readiness notes](docs/PRO_APPLICATION_READY.md)
@@ -90,6 +108,9 @@ forge-agent do "draft a project status note"
 forge-agent organize ./invoices
 forge-agent organize ./invoices --approve
 forge-agent organize-rollback
+forge-agent history list
+forge-agent schedule list
+forge-agent make ppt "project update"
 forge-agent skills
 forge-agent approvals list
 forge-agent doctor
@@ -102,10 +123,7 @@ forge-agent doctor
 - License: MIT.
 - Repository visibility: public.
 - Demo: ordinary-user file organizer with approval ledger and skill reuse proof.
-- v1.1 feature branch: real dry-run-first organize command.
-- v1.2 feature branch: skill lifecycle controls.
-- v1.3 feature branch: rollback for approved organize operations.
-- Release honesty: this source release does not claim signed installers, production telemetry, or broad field reliability.
+- Release honesty: this source release does not claim signed installers, production telemetry, live-news retrieval, or broad field reliability.
 
 ## What is included
 
@@ -113,21 +131,23 @@ forge-agent doctor
 - Local skill store with automatic skill creation, lifecycle, and reuse.
 - Approval ledger for risky actions.
 - Deterministic file organizer demo.
-- Real dry-run-first organize command on the v1.1+ feature branch.
+- Real dry-run-first organize command.
 - Rollback support for approved organize operations.
+- Operation history and schedule registry.
+- Local content skill packs for PPT outline, report, news brief, and storyboard artifacts.
 - Product, MVP, commercialization, architecture, validation, and competitive-analysis docs.
-- GitHub Actions smoke CI and tests for the public runtime/demo/organizer/lifecycle path.
+- GitHub Actions smoke CI and tests for the public runtime/demo/organizer/lifecycle/product path.
 
 ## Validation
 
 ```bash
 python -m compileall src tests
-python -m pytest -q tests/test_public_runtime.py tests/test_organizer.py tests/test_skills_lifecycle.py
+python -m pytest -q tests/test_public_runtime.py tests/test_organizer.py tests/test_skills_lifecycle.py tests/test_product_packs.py
 forge-agent demo --kind file-organizer --json
 forge-agent organize ./invoices --json
 ```
 
-GitHub Actions validates Python 3.11 and 3.12, compile checks, public runtime/demo tests, organizer tests, skill lifecycle tests, the file-organizer demo, real organizer dry-run, rollback behavior, and demo evidence files.
+GitHub Actions validates Python 3.11 and 3.12, compile checks, public runtime/demo tests, organizer tests, skill lifecycle tests, product pack tests, the file-organizer demo, real organizer dry-run, rollback behavior, schedule registry, content artifacts, and demo evidence files.
 
 The original RC10 source package contains a larger runtime and test suite. The public repository is being normalized around the ordinary-user product surface first.
 
