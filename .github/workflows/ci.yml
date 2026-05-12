@@ -33,6 +33,17 @@ jobs:
           EOF
           forge-agent organize /tmp/forge-agent-ci-invoices --json
           test -f /tmp/forge-agent-ci-invoices/invoice-2026-06-ci.txt
+      - name: Run real organizer approve and rollback smoke test
+        run: |
+          mkdir -p /tmp/forge-agent-ci-rollback
+          cat > /tmp/forge-agent-ci-rollback/receipt-2026-09-ci.txt <<'EOF'
+          Receipt Date: 2026-09-09
+          Amount: 29.00
+          EOF
+          forge-agent --workspace /tmp/forge-agent-ci-rollback-workspace organize /tmp/forge-agent-ci-rollback --approve --json
+          test -f /tmp/forge-agent-ci-rollback/organized/2026-09/receipt-2026-09-ci.txt
+          forge-agent --workspace /tmp/forge-agent-ci-rollback-workspace organize-rollback --json
+          test -f /tmp/forge-agent-ci-rollback/receipt-2026-09-ci.txt
       - name: Run skill lifecycle smoke test
         run: |
           forge-agent --workspace /tmp/forge-agent-ci-skill do "organize receipts by month" >/tmp/forge-agent-ci-skill-task.json
