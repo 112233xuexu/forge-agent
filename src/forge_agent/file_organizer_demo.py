@@ -37,7 +37,7 @@ _SAMPLE_FILES: dict[str, str] = {
     "invoice-2026-01-alpha.txt": "Invoice Date: 2026-01-05\nVendor: Alpha Supplies\nAmount: 42.00\n",
     "receipt-2026-01-coffee.txt": "Receipt Date: 2026-01-18\nVendor: Coffee Shop\nAmount: 8.50\n",
     "invoice-2026-02-beta.txt": "Invoice Date: 2026-02-03\nVendor: Beta Services\nAmount: 120.00\n",
-    "note-random.txt": "This is not a receipt or invoice and should remain in the inbox.\n",
+    "note-random.txt": "This is a personal note and should remain in the inbox.\n",
 }
 
 _SECOND_BATCH: dict[str, str] = {
