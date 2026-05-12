@@ -37,7 +37,7 @@ _SAMPLE_FILES: dict[str, str] = {
     "invoice-2026-01-alpha.txt": "Invoice Date: 2026-01-05\nVendor: Alpha Supplies\nAmount: 42.00\n",
     "receipt-2026-01-coffee.txt": "Receipt Date: 2026-01-18\nVendor: Coffee Shop\nAmount: 8.50\n",
     "invoice-2026-02-beta.txt": "Invoice Date: 2026-02-03\nVendor: Beta Services\nAmount: 120.00\n",
-    "note-random.txt": "This is not a receipt or invoice and should remain in the inbox.\n",
+    "note-random.txt": "This is a personal note and should remain in the inbox.\n",
 }
 
 _SECOND_BATCH: dict[str, str] = {
@@ -88,7 +88,9 @@ def run_file_organizer_demo(workspace: str | Path = ".forge-agent-demo") -> File
 
     for name, content in _SECOND_BATCH.items():
         (inbox / name).write_text(content, encoding="utf-8")
-    reused_skill, created_second = skill_store.get_or_create_for_goal("请继续整理新来的发票和收据")
+    reused_skill, created_second = skill_store.get_or_create_for_goal(
+        "请继续整理新来的发票和收据，找出发票和收据，按月份归类"
+    )
     moved_second = _organize_invoice_like_files(inbox, organized)
     skill_store.mark_used(reused_skill.skill_id, success=True)
 

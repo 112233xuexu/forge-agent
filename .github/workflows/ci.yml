@@ -20,10 +20,53 @@ jobs:
       - run: python -m pip install -e . pytest
       - name: Compile source and tests
         run: python -m compileall src tests
-      - name: Run public runtime and demo tests
-        run: python -m pytest -q tests/test_public_runtime.py
+      - name: Run public runtime, organizer, lifecycle, and product tests
+        run: python -m pytest -q tests/test_public_runtime.py tests/test_organizer.py tests/test_skills_lifecycle.py tests/test_product_packs.py
       - name: Run ordinary-user file organizer demo
         run: forge-agent demo --kind file-organizer --json
+      - name: Run real organizer dry-run smoke test
+        run: |
+          mkdir -p /tmp/forge-agent-ci-invoices
+          cat > /tmp/forge-agent-ci-invoices/invoice-2026-06-ci.txt <<'EOF'
+          Invoice Date: 2026-06-05
+          Amount: 19.00
+          EOF
+          forge-agent organize /tmp/forge-agent-ci-invoices --json
+          test -f /tmp/forge-agent-ci-invoices/invoice-2026-06-ci.txt
+      - name: Run real organizer approve and rollback smoke test
+        run: |
+          mkdir -p /tmp/forge-agent-ci-rollback
+          cat > /tmp/forge-agent-ci-rollback/receipt-2026-09-ci.txt <<'EOF'
+          Receipt Date: 2026-09-09
+          Amount: 29.00
+          EOF
+          forge-agent --workspace /tmp/forge-agent-ci-rollback-workspace organize /tmp/forge-agent-ci-rollback --approve --json
+          test -f /tmp/forge-agent-ci-rollback/organized/2026-09/receipt-2026-09-ci.txt
+          forge-agent --workspace /tmp/forge-agent-ci-rollback-workspace organize-rollback --json
+          test -f /tmp/forge-agent-ci-rollback/receipt-2026-09-ci.txt
+      - name: Run skill lifecycle smoke test
+        run: |
+          forge-agent --workspace /tmp/forge-agent-ci-skill do "organize receipts by month" >/tmp/forge-agent-ci-skill-task.json
+          forge-agent --workspace /tmp/forge-agent-ci-skill skills list
+          SKILL_ID=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          lines = Path('/tmp/forge-agent-ci-skill/skills/index.jsonl').read_text(encoding='utf-8').splitlines()
+          print(json.loads(lines[0])['skill_id'])
+          PY
+          )
+          forge-agent --workspace /tmp/forge-agent-ci-skill skills validate "$SKILL_ID" --reason "ci validation"
+          forge-agent --workspace /tmp/forge-agent-ci-skill skills show "$SKILL_ID" | grep validated
+      - name: Run v1.4-v1.8 product smoke tests
+        run: |
+          forge-agent --workspace /tmp/forge-agent-ci-product make ppt "Forge Agent MVP" --json
+          forge-agent --workspace /tmp/forge-agent-ci-product make report "Forge Agent Validation" --json
+          forge-agent --workspace /tmp/forge-agent-ci-product make news "AI agents" --json
+          forge-agent --workspace /tmp/forge-agent-ci-product make storyboard "Forge Agent demo" --json
+          forge-agent --workspace /tmp/forge-agent-ci-product schedule add "every day 9am" forge-agent organize ~/Downloads --json
+          forge-agent --workspace /tmp/forge-agent-ci-product schedule list --json
+          test -f /tmp/forge-agent-ci-product/artifacts/index.jsonl
+          test -f /tmp/forge-agent-ci-product/schedules.jsonl
       - name: Verify demo evidence
         run: |
           python - <<'PY'
