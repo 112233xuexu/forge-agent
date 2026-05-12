@@ -7,6 +7,7 @@ from typing import Any, Iterable
 import json
 import re
 import shutil
+import uuid
 
 from .approvals import ApprovalLedger
 from .skills import SkillStore
@@ -20,6 +21,10 @@ class OrganizeMove:
 
     def to_dict(self) -> dict[str, str]:
         return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, str]) -> "OrganizeMove":
+        return cls(source=str(data["source"]), destination=str(data["destination"]), month=str(data.get("month", "unknown-month")))
 
 
 @dataclass
@@ -35,6 +40,7 @@ class OrganizeResult:
     planned_moves: list[OrganizeMove] = field(default_factory=list)
     moved_files: list[OrganizeMove] = field(default_factory=list)
     manifest_path: str | None = None
+    operation_id: str | None = None
     messages: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -44,18 +50,29 @@ class OrganizeResult:
         return data
 
 
-class FileOrganizer:
-    """Real file organizer for ordinary users.
+@dataclass
+class RollbackResult:
+    operation_id: str
+    restored_files: list[OrganizeMove] = field(default_factory=list)
+    skipped_files: list[dict[str, str]] = field(default_factory=list)
+    manifest_path: str | None = None
+    messages: list[str] = field(default_factory=list)
 
-    Defaults to dry-run so Forge Agent never moves real user files silently.
-    Passing `approve=True` allows safe invoice/receipt file moves into month
-    folders and records the operation in the workspace manifest.
-    """
+    def to_dict(self) -> dict[str, Any]:
+        data = asdict(self)
+        data["restored_files"] = [item.to_dict() for item in self.restored_files]
+        return data
+
+
+class FileOrganizer:
+    """Dry-run-first file organizer with rollback support for ordinary users."""
 
     def __init__(self, workspace: str | Path = ".forge-agent") -> None:
         self.workspace = Path(workspace)
         self.skill_store = SkillStore(self.workspace)
         self.approvals = ApprovalLedger(self.workspace)
+        self.operations_dir = self.workspace / "operations"
+        self.latest_operation_path = self.operations_dir / "latest-organize.json"
 
     def organize_by_month(
         self,
@@ -76,10 +93,15 @@ class FileOrganizer:
             action=f"Move {len(planned)} invoice/receipt files from {source} into month folders under {output}.",
             risk="file_move",
             explanation=(
-                "Forge Agent detected invoice or receipt-like files and prepared a month-based organization plan. "
-                "Dry-run mode only previews the plan. Use --approve to allow the moves."
+                "Forge Agent prepared a month-based organization plan. Dry-run mode only previews the plan. "
+                "Use --approve to allow the moves. Approved moves can be rolled back."
             ),
-            metadata={"source_dir": str(source), "output_dir": str(output), "skill_id": skill.skill_id, "planned_moves": [item.to_dict() for item in planned]},
+            metadata={
+                "source_dir": str(source),
+                "output_dir": str(output),
+                "skill_id": skill.skill_id,
+                "planned_moves": [item.to_dict() for item in planned],
+            },
         )
         if not approve:
             return OrganizeResult(
@@ -99,6 +121,7 @@ class FileOrganizer:
             )
 
         self.approvals.decide(approval.approval_id, "approved")
+        operation_id = str(uuid.uuid4())
         moved: list[OrganizeMove] = []
         for item in planned:
             target = Path(item.destination)
@@ -106,7 +129,7 @@ class FileOrganizer:
             shutil.move(item.source, item.destination)
             moved.append(item)
         self.skill_store.mark_used(skill.skill_id, success=True)
-        manifest_path = self._write_manifest(source, output, skill.skill_id, approval.approval_id, moved)
+        manifest_path = self._write_manifest(source, output, skill.skill_id, approval.approval_id, moved, operation_id=operation_id)
         return OrganizeResult(
             source_dir=str(source),
             output_dir=str(output),
@@ -119,7 +142,50 @@ class FileOrganizer:
             planned_moves=planned,
             moved_files=moved,
             manifest_path=str(manifest_path),
-            messages=[f"Moved {len(moved)} files.", f"Manifest written to {manifest_path}"],
+            operation_id=operation_id,
+            messages=[
+                f"Moved {len(moved)} files.",
+                f"Manifest written to {manifest_path}",
+                "Rollback available with `forge-agent organize-rollback`.",
+            ],
+        )
+
+    def rollback_last(self) -> RollbackResult:
+        if not self.latest_operation_path.exists():
+            raise FileNotFoundError("no previous organize operation found")
+        data = json.loads(self.latest_operation_path.read_text(encoding="utf-8"))
+        return self.rollback_operation(str(data["operation_id"]))
+
+    def rollback_operation(self, operation_id: str) -> RollbackResult:
+        manifest_path = self.operations_dir / f"organize-{operation_id}.json"
+        if not manifest_path.exists():
+            raise FileNotFoundError(f"organize operation not found: {operation_id}")
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        restored: list[OrganizeMove] = []
+        skipped: list[dict[str, str]] = []
+        for raw in manifest.get("moved_files", []):
+            move = OrganizeMove.from_dict(raw)
+            current = Path(move.destination)
+            original = Path(move.source)
+            if not current.exists():
+                skipped.append({"source": str(current), "reason": "moved file no longer exists"})
+                continue
+            if original.exists():
+                skipped.append({"source": str(current), "reason": "original path already exists"})
+                continue
+            original.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(current), str(original))
+            restored.append(OrganizeMove(source=str(current), destination=str(original), month=move.month))
+        manifest["rolled_back_at"] = datetime.now(timezone.utc).isoformat()
+        manifest["restored_files"] = [item.to_dict() for item in restored]
+        manifest["skipped_files"] = skipped
+        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        return RollbackResult(
+            operation_id=operation_id,
+            restored_files=restored,
+            skipped_files=skipped,
+            manifest_path=str(manifest_path),
+            messages=[f"Restored {len(restored)} files.", f"Skipped {len(skipped)} files."],
         )
 
     def _plan_moves(self, source: Path, output: Path, include_extensions: set[str]) -> list[OrganizeMove]:
@@ -137,10 +203,11 @@ class FileOrganizer:
             moves.append(OrganizeMove(source=str(path), destination=str(destination), month=month))
         return moves
 
-    def _write_manifest(self, source: Path, output: Path, skill_id: str, approval_id: str, moved: list[OrganizeMove]) -> Path:
-        self.workspace.mkdir(parents=True, exist_ok=True)
-        manifest_path = self.workspace / "organize-manifest.json"
+    def _write_manifest(self, source: Path, output: Path, skill_id: str, approval_id: str, moved: list[OrganizeMove], *, operation_id: str) -> Path:
+        self.operations_dir.mkdir(parents=True, exist_ok=True)
+        manifest_path = self.operations_dir / f"organize-{operation_id}.json"
         manifest = {
+            "operation_id": operation_id,
             "source_dir": str(source),
             "output_dir": str(output),
             "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -149,6 +216,9 @@ class FileOrganizer:
             "moved_files": [item.to_dict() for item in moved],
         }
         manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        self.workspace.mkdir(parents=True, exist_ok=True)
+        (self.workspace / "organize-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        self.latest_operation_path.write_text(json.dumps({"operation_id": operation_id, "manifest_path": str(manifest_path)}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         return manifest_path
 
 
