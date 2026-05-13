@@ -1,7 +1,8 @@
 import json
+import sys
 
 from forge_agent.brain import BrainAdapter
-from forge_agent.cli import main
+from forge_agent.entrypoint import cli_entrypoint
 
 
 def test_brain_adapter_plans_file_organization():
@@ -25,8 +26,9 @@ def test_brain_adapter_empty_goal_is_safe_unknown():
     assert plan.needs_user_approval is False
 
 
-def test_cli_ask_json_outputs_structured_plan(capsys, tmp_path):
-    exit_code = main(["--workspace", str(tmp_path), "ask", "organize", "my", "receipts", "--json"])
+def test_cli_ask_json_outputs_structured_plan(capsys, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["forge-agent", "ask", "organize", "my", "receipts", "--json"])
+    exit_code = cli_entrypoint()
     assert exit_code == 0
     captured = capsys.readouterr()
     data = json.loads(captured.out)
