@@ -30,7 +30,7 @@ Repository = "https://github.com/112233xuexu/forge-agent"
 Issues = "https://github.com/112233xuexu/forge-agent/issues"
 
 [project.scripts]
-forge-agent = "forge_agent.cli:cli_entrypoint"
+forge-agent = "forge_agent.entrypoint:cli_entrypoint"
 
 [tool.setuptools.packages.find]
 where = ["src"]
