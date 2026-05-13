@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.9.0-brain-adapter
+
+Adds a local Brain Adapter planning layer for ordinary-language requests.
+
+### Added
+
+- `forge-agent ask "topic" --json`.
+- `BrainAdapter` and `BrainPlan` for deterministic local planning.
+- Ask-aware CLI entrypoint wrapper.
+- Structured plan fields including intent, next step, safety level, suggested command, confidence, notes, and metadata.
+- Brain Adapter tests and CI smoke coverage.
+- Documentation: `docs/V1_9_BRAIN_ADAPTER.md`.
+
+### Product principle
+
+```text
+Brain suggests. Forge Agent governs.
+```
+
+The Brain Adapter suggests a structured plan. Forge Agent remains responsible for preview, approval, evidence, history, rollback, and skill lifecycle behavior.
+
+### Honest limitation
+
+This is a local deterministic planning layer first. It does not yet add provider-backed planning, hidden background work, or autonomous execution.
+
 ## v1.8.0-video-storyboard
 
 Adds a local video/storyboard skill pack for ordinary users who need a simple content-production starting point.
