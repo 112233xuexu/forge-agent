@@ -2,11 +2,11 @@
 
 ## Current readiness estimate
 
-This repository is now a credible early-stage open-source application candidate, not a mature ecosystem project.
+This repository is now a credible early-stage open-source application candidate with a working ordinary-user automation MVP, not just a demo repository.
 
-Estimated readiness: **70%**.
+Estimated readiness: **78%**.
 
-The next lift toward 80-90% is usage signal: stars, external feedback, issues from real users, and a release with CI evidence.
+The next lift toward 85-90% is external signal: stars, issues from real users, screenshots/GIFs, a tagged release, and feedback from people trying the CLI on real folders.
 
 ## Why the project is eligible to discuss
 
@@ -14,7 +14,13 @@ Forge Agent is public, MIT-licensed, and maintained by the repository owner. It 
 
 ## Repository value proposition
 
-Forge Agent is a zero-configuration skill autopilot for ordinary users. A user gives one command. The runtime finds or creates the required skill, asks approval before risky actions, records evidence, and reuses the skill next time.
+Forge Agent is a zero-configuration skill autopilot for ordinary users. A user gives one command. The runtime finds or creates the required skill, asks approval before risky actions, records evidence, supports rollback for approved file operations, and reuses the skill next time.
+
+v1.9 adds a local Brain Adapter planning layer so ordinary-language requests can become structured plans while Forge Agent remains responsible for preview, approval, evidence, history, rollback, and skill lifecycle behavior.
+
+```text
+Brain suggests. Forge Agent governs.
+```
 
 ## Demo proof
 
@@ -33,24 +39,50 @@ It shows:
 - `manifest.json` evidence;
 - second-batch skill reuse with `reuse_proven: true`.
 
+## MVP proof
+
+The main branch now includes:
+
+- v1.1 real dry-run-first organize command;
+- v1.2 skill lifecycle controls;
+- v1.3 rollback for approved organize operations;
+- v1.4 operation history;
+- v1.5 schedule registry;
+- v1.6 PPT/report local artifact generation;
+- v1.7 news brief template generation;
+- v1.8 video storyboard generation;
+- v1.9 Brain Adapter planning with `forge-agent ask`.
+
+Useful validation commands:
+
+```bash
+forge-agent ask "organize my invoices by month" --json
+forge-agent organize ./invoices
+forge-agent organize ./invoices --approve
+forge-agent organize-rollback
+forge-agent make ppt "project status update"
+```
+
 ## Suggested 500-character qualification text
 
-I am the primary maintainer of Forge Agent, an MIT-licensed local-first agent runtime focused on the usability gap in open-source agents. Forge Agent lets ordinary users issue plain-language goals while the runtime automatically creates/reuses skills, asks approval before risky actions, and records evidence in a local ledger. Codex would help review PRs, expand tests, harden approval/security paths, and normalize the larger RC10 runtime.
+I am the primary maintainer of Forge Agent, an MIT-licensed local-first automation agent for ordinary users. It turns plain-language requests into local plans and reusable skills, previews risky work, asks approval before file moves, records evidence, and supports rollback. Codex would help review PRs, expand tests, harden safety paths, improve the Brain Adapter, and normalize the larger RC10 runtime.
 
 ## Suggested API credits text
 
-I would use API credits to test agent planning, skill generation, PR review, issue triage, release-note drafting, and security-review workflows for Forge Agent. The goal is to improve the open-source runtime, strengthen the ordinary-user demo, expand automated tests, and harden approval-gated execution before broader release.
+I would use API credits to test planning, skill generation, PR review, issue triage, release-note drafting, and security-review workflows for Forge Agent. The goal is to improve the open-source runtime, strengthen ordinary-user automation, expand automated tests, and harden approval-gated operations before broader release.
 
 ## Honest limitations
 
 - The project is early-stage and does not yet have strong public adoption metrics.
-- The demo is deterministic and sandboxed; real-user file execution requires more security hardening.
+- The current Brain Adapter is deterministic and local; provider-backed planning is not yet included.
+- Some product surfaces are templates first: news does not fetch live sources, PPT/report output is Markdown first, and storyboard does not render video.
+- The schedule registry stores schedule records but does not yet run a background daemon.
 - The larger RC10 runtime is still being normalized into the public repo.
 - The project should not claim production readiness yet.
 
 ## Recommended before submitting
 
-- Create a GitHub release: `v1.0.0-oss-demo-candidate`.
-- Add a screenshot or short GIF of the demo.
+- Create a GitHub release: `v1.9.0-brain-adapter` or `v1.0.0-ordinary-user-mvp`.
+- Add a screenshot or short GIF of the demo and `forge-agent ask` output.
 - Ask a few people to star or try the repository.
 - Keep the application wording honest and focused on usability innovation, not exaggerated adoption.
