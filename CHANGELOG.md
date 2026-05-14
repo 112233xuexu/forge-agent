@@ -1,5 +1,30 @@
 # Changelog
 
+## v2.1.0-file-safety
+
+Hardens approved file organization by preventing destination overwrites and making skipped files visible in JSON and manifests.
+
+### Added
+
+- Destination-collision protection for approved organize operations.
+- `OrganizeResult.skipped_files` for skipped file evidence.
+- `skipped_files` in operation manifests.
+- `skipped_files` in the latest `organize-manifest.json`.
+- Test coverage for skipped-file JSON and manifest output.
+- Documentation: `docs/RELEASE_NOTES_V2_1.md`.
+
+### Product meaning
+
+v2.1 improves trust for ordinary users.
+
+```text
+safe preview -> explicit approval -> no overwrite -> visible skipped file evidence
+```
+
+### Honest limitation
+
+v2.1 reports skipped files but does not yet provide an interactive conflict-resolution UI.
+
 ## v2.0.0-product-hardening
 
 Hardens the v1.9 ordinary-user MVP with better CLI consistency, input validation, user-facing error handling, and stronger deterministic Brain Adapter tests.
