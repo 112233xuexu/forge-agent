@@ -117,6 +117,7 @@ See also:
 - [v1.3 rollback](docs/V1_3_ROLLBACK.md)
 - [v1.4-v1.8 product expansion](docs/V1_4_TO_V1_8_PRODUCT_EXPANSION.md)
 - [v1.9 Brain Adapter](docs/V1_9_BRAIN_ADAPTER.md)
+- [v1.9 release notes](docs/RELEASE_NOTES_V1_9.md)
 - [Demo output sample](docs/DEMO_OUTPUT_SAMPLE.json)
 - [Release candidate notes](docs/RELEASE_CANDIDATE.md)
 - [OpenAI OSS / Pro readiness notes](docs/PRO_APPLICATION_READY.md)
