@@ -16,12 +16,32 @@ def cli_entrypoint() -> int:
 
     try:
         argv = sys.argv[1:]
-        if argv and argv[0] == "ask":
-            return _handle_ask(argv[1:])
+        command_argv = _strip_supported_global_options(argv)
+        if command_argv and command_argv[0] == "ask":
+            return _handle_ask(command_argv[1:])
         return legacy_cli_entrypoint()
     except OSError as exc:
         print(f"Forge Agent file error: {exc}", file=sys.stderr)
         return 2
+
+
+def _strip_supported_global_options(argv: list[str]) -> list[str]:
+    """Return command args after wrapper-supported global options.
+
+    The mature argparse CLI owns full option parsing. This helper only handles
+    the global options needed before the wrapper-owned `ask` command.
+    """
+
+    remaining = list(argv)
+    while remaining:
+        if remaining[0] == "--workspace" and len(remaining) >= 2:
+            remaining = remaining[2:]
+            continue
+        if remaining[0].startswith("--workspace="):
+            remaining = remaining[1:]
+            continue
+        break
+    return remaining
 
 
 def _handle_ask(argv: list[str]) -> int:
