@@ -2,11 +2,11 @@
 
 ## Current readiness estimate
 
-This repository is now a credible early-stage open-source application candidate with a working ordinary-user automation MVP, not just a demo repository.
+This repository is now a credible early-stage open-source application candidate with a working ordinary-user automation MVP plus a v2.0 product-hardening line.
 
-Estimated readiness: **78%**.
+Estimated readiness: **82%**.
 
-The next lift toward 85-90% is external signal: stars, issues from real users, screenshots/GIFs, a tagged release, and feedback from people trying the CLI on real folders.
+The next lift toward 90% is external signal: stars, issues from real users, screenshots/GIFs, a tagged v2.0 release, and feedback from people trying the CLI on real folders.
 
 ## Why the project is eligible to discuss
 
@@ -16,7 +16,9 @@ Forge Agent is public, MIT-licensed, and maintained by the repository owner. It 
 
 Forge Agent is a zero-configuration skill autopilot for ordinary users. A user gives one command. The runtime finds or creates the required skill, asks approval before risky actions, records evidence, supports rollback for approved file operations, and reuses the skill next time.
 
-v1.9 adds a local Brain Adapter planning layer so ordinary-language requests can become structured plans while Forge Agent remains responsible for preview, approval, evidence, history, rollback, and skill lifecycle behavior.
+v1.9 added a local Brain Adapter planning layer so ordinary-language requests can become structured plans while Forge Agent remains responsible for preview, approval, evidence, history, rollback, and skill lifecycle behavior.
+
+v2.0 hardens that MVP with friendlier CLI errors, workspace-aware ask usage, ask validation, help output, JSON error output, and broader deterministic Brain Adapter tests.
 
 ```text
 Brain suggests. Forge Agent governs.
@@ -39,7 +41,7 @@ It shows:
 - `manifest.json` evidence;
 - second-batch skill reuse with `reuse_proven: true`.
 
-## MVP proof
+## MVP and hardening proof
 
 The main branch now includes:
 
@@ -51,12 +53,15 @@ The main branch now includes:
 - v1.6 PPT/report local artifact generation;
 - v1.7 news brief template generation;
 - v1.8 video storyboard generation;
-- v1.9 Brain Adapter planning with `forge-agent ask`.
+- v1.9 Brain Adapter planning with `forge-agent ask`;
+- v2.0 product hardening for CLI consistency, input validation, and stronger tests.
 
 Useful validation commands:
 
 ```bash
 forge-agent ask "organize my invoices by month" --json
+forge-agent --workspace .forge-agent ask "make a project status deck" --json
+forge-agent ask --help
 forge-agent organize ./invoices
 forge-agent organize ./invoices --approve
 forge-agent organize-rollback
@@ -65,7 +70,7 @@ forge-agent make ppt "project status update"
 
 ## Suggested 500-character qualification text
 
-I am the primary maintainer of Forge Agent, an MIT-licensed local-first automation agent for ordinary users. It turns plain-language requests into local plans and reusable skills, previews risky work, asks approval before file moves, records evidence, and supports rollback. Codex would help review PRs, expand tests, harden safety paths, improve the Brain Adapter, and normalize the larger RC10 runtime.
+I am the primary maintainer of Forge Agent, an MIT-licensed local-first automation agent for ordinary users. It turns plain-language requests into local plans and reusable skills, previews risky work, asks approval before file moves, records evidence, and supports rollback. v2.0 hardens CLI consistency, user-facing errors, ask validation, and deterministic planning tests. Codex would help review PRs, expand tests, and normalize the larger RC10 runtime.
 
 ## Suggested API credits text
 
@@ -82,7 +87,7 @@ I would use API credits to test planning, skill generation, PR review, issue tri
 
 ## Recommended before submitting
 
-- Create a GitHub release: `v1.9.0-brain-adapter` or `v1.0.0-ordinary-user-mvp`.
+- Create a GitHub release: `v2.0.0-product-hardening` after the v2.0 evidence PR lands.
 - Add a screenshot or short GIF of the demo and `forge-agent ask` output.
 - Ask a few people to star or try the repository.
 - Keep the application wording honest and focused on usability innovation, not exaggerated adoption.
