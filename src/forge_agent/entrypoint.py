@@ -7,6 +7,16 @@ from .brain import BrainAdapter
 from .cli import cli_entrypoint as legacy_cli_entrypoint
 
 
+ASK_USAGE = """usage: forge-agent ask [--json] <request>
+
+Turn a plain-language request into a local Forge plan.
+
+Examples:
+  forge-agent ask "organize my invoices by month" --json
+  forge-agent --workspace .forge-agent ask "make a project status deck" --json
+"""
+
+
 def cli_entrypoint() -> int:
     """Console entrypoint wrapper for v1.9 planning and user-friendly errors.
 
@@ -45,6 +55,10 @@ def _strip_supported_global_options(argv: list[str]) -> list[str]:
 
 
 def _handle_ask(argv: list[str]) -> int:
+    if any(item in {"-h", "--help"} for item in argv):
+        print(ASK_USAGE)
+        return 0
+
     wants_json = False
     cleaned: list[str] = []
     for item in argv:
@@ -52,7 +66,22 @@ def _handle_ask(argv: list[str]) -> int:
             wants_json = True
         else:
             cleaned.append(item)
-    plan = BrainAdapter().plan(" ".join(cleaned))
+
+    goal = " ".join(cleaned).strip()
+    if not goal:
+        error = {
+            "error": "missing_request",
+            "message": "Provide a request after `forge-agent ask`.",
+            "usage": "forge-agent ask \"organize my invoices by month\" --json",
+        }
+        if wants_json:
+            print(json.dumps(error, ensure_ascii=False, indent=2), file=sys.stderr)
+        else:
+            print("Forge Agent ask error: provide a request after `forge-agent ask`.", file=sys.stderr)
+            print("Example: forge-agent ask \"organize my invoices by month\" --json", file=sys.stderr)
+        return 2
+
+    plan = BrainAdapter().plan(goal)
     data = plan.to_dict()
     if wants_json:
         print(json.dumps(data, ensure_ascii=False, indent=2))
