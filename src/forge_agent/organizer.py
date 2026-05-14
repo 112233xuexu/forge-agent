@@ -123,13 +123,24 @@ class FileOrganizer:
         self.approvals.decide(approval.approval_id, "approved")
         operation_id = str(uuid.uuid4())
         moved: list[OrganizeMove] = []
+        skipped: list[OrganizeMove] = []
         for item in planned:
             target = Path(item.destination)
+            if target.exists():
+                skipped.append(item)
+                continue
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(item.source, item.destination)
             moved.append(item)
         self.skill_store.mark_used(skill.skill_id, success=True)
         manifest_path = self._write_manifest(source, output, skill.skill_id, approval.approval_id, moved, operation_id=operation_id)
+        messages = [
+            f"Moved {len(moved)} files.",
+            f"Manifest written to {manifest_path}",
+            "Rollback available with `forge-agent organize-rollback`.",
+        ]
+        if skipped:
+            messages.append(f"Skipped {len(skipped)} files because the destination already exists.")
         return OrganizeResult(
             source_dir=str(source),
             output_dir=str(output),
@@ -143,11 +154,7 @@ class FileOrganizer:
             moved_files=moved,
             manifest_path=str(manifest_path),
             operation_id=operation_id,
-            messages=[
-                f"Moved {len(moved)} files.",
-                f"Manifest written to {manifest_path}",
-                "Rollback available with `forge-agent organize-rollback`.",
-            ],
+            messages=messages,
         )
 
     def rollback_last(self) -> RollbackResult:

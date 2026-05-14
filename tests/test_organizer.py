@@ -46,6 +46,28 @@ def test_organizer_approved_moves_files_and_writes_manifest(tmp_path):
     assert (tmp_path / "workspace" / "skills" / "index.jsonl").exists()
 
 
+def test_organizer_approved_skips_existing_destination(tmp_path):
+    source = tmp_path / "invoices"
+    source.mkdir()
+    invoice = source / "invoice-2026-10-alpha.txt"
+    invoice.write_text("Invoice Date: 2026-10-03\nAmount: 10\n", encoding="utf-8")
+    target_dir = source / "organized" / "2026-10"
+    target_dir.mkdir(parents=True)
+    target = target_dir / invoice.name
+    target.write_text("existing organized file", encoding="utf-8")
+
+    organizer = FileOrganizer(tmp_path / "workspace")
+    result = organizer.organize_by_month(source, approve=True)
+
+    assert result.mode == "approved"
+    assert result.approved is True
+    assert len(result.moved_files) == 0
+    assert invoice.exists()
+    assert target.read_text(encoding="utf-8") == "existing organized file"
+    assert any("Skipped 1 files" in message for message in result.messages)
+    assert any("already exists" in message for message in result.messages)
+
+
 def test_organizer_rollback_last_restores_files(tmp_path):
     source = tmp_path / "invoices"
     source.mkdir()
