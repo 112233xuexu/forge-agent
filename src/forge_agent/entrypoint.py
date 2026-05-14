@@ -8,16 +8,20 @@ from .cli import cli_entrypoint as legacy_cli_entrypoint
 
 
 def cli_entrypoint() -> int:
-    """Console entrypoint wrapper for v1.9 planning.
+    """Console entrypoint wrapper for v1.9 planning and user-friendly errors.
 
     Existing commands continue to use the mature CLI module. The new `ask`
     command is handled here to keep the v1.9 change small and low-risk.
     """
 
-    argv = sys.argv[1:]
-    if argv and argv[0] == "ask":
-        return _handle_ask(argv[1:])
-    return legacy_cli_entrypoint()
+    try:
+        argv = sys.argv[1:]
+        if argv and argv[0] == "ask":
+            return _handle_ask(argv[1:])
+        return legacy_cli_entrypoint()
+    except OSError as exc:
+        print(f"Forge Agent file error: {exc}", file=sys.stderr)
+        return 2
 
 
 def _handle_ask(argv: list[str]) -> int:
