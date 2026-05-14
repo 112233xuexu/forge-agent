@@ -1,5 +1,33 @@
 # Changelog
 
+## v2.0.0-product-hardening
+
+Hardens the v1.9 ordinary-user MVP with better CLI consistency, input validation, user-facing error handling, and stronger deterministic Brain Adapter tests.
+
+### Added
+
+- `forge-agent --workspace <path> ask "topic" --json`.
+- `forge-agent --workspace=<path> ask "topic" --json`.
+- `forge-agent ask --help` usage output.
+- Structured JSON error output for missing `ask` requests.
+- Entry-point tests for friendly CLI error handling.
+- Workspace-aware `ask` tests.
+- Ask validation tests.
+- Expanded Brain Adapter stability tests, including fallback, metadata, safety level, report, and Chinese storyboard planning.
+- Documentation: `docs/RELEASE_NOTES_V2_0.md`.
+
+### Product meaning
+
+v2.0 focuses on making the existing product harder rather than expanding the product surface.
+
+```text
+clear input -> clear plan -> clear safety boundary -> clear error when something is wrong
+```
+
+### Honest limitation
+
+v2.0 is still local-first. Provider-backed planning, signed installers, background scheduling, and rendered binary artifacts remain future work.
+
 ## v1.9.0-brain-adapter
 
 Adds a local Brain Adapter planning layer for ordinary-language requests.
