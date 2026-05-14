@@ -18,6 +18,12 @@ v1.9 adds a local planning layer:
 ordinary request -> Brain Adapter plan -> Forge preview -> approval when needed -> evidence/history -> rollback where supported
 ```
 
+v2.0 hardens the product surface:
+
+```text
+clear input -> clear plan -> clear safety boundary -> clear error when something is wrong
+```
+
 The product rule is:
 
 ```text
@@ -50,7 +56,8 @@ Brain Adapter planning:
 
 ```bash
 forge-agent ask "organize my invoices by month" --json
-forge-agent ask "make a project status deck" --json
+forge-agent --workspace .forge-agent ask "make a project status deck" --json
+forge-agent ask --help
 ```
 
 Real dry-run-first file organization:
@@ -106,8 +113,9 @@ forge-agent skills quarantine <skill_id>
 - v1.7: news brief template generation.
 - v1.8: video storyboard generation.
 - v1.9: Brain Adapter planning layer with `forge-agent ask`.
+- v2.0: product hardening for CLI consistency, input validation, error surfaces, and stronger tests.
 
-The v1.4-v1.9 features are local deterministic product surfaces first. They do not yet claim full live news retrieval, real background daemon execution, `.pptx` rendering, voiceover generation, video rendering, or provider-backed autonomous execution.
+The v1.4-v2.0 features are local deterministic product surfaces first. They do not yet claim full live news retrieval, real background daemon execution, `.pptx` rendering, voiceover generation, video rendering, or provider-backed autonomous execution.
 
 See also:
 
@@ -118,6 +126,7 @@ See also:
 - [v1.4-v1.8 product expansion](docs/V1_4_TO_V1_8_PRODUCT_EXPANSION.md)
 - [v1.9 Brain Adapter](docs/V1_9_BRAIN_ADAPTER.md)
 - [v1.9 release notes](docs/RELEASE_NOTES_V1_9.md)
+- [v2.0 hardening notes](docs/RELEASE_NOTES_V2_0.md)
 - [Demo output sample](docs/DEMO_OUTPUT_SAMPLE.json)
 - [Release candidate notes](docs/RELEASE_CANDIDATE.md)
 - [OpenAI OSS / Pro readiness notes](docs/PRO_APPLICATION_READY.md)
@@ -127,6 +136,8 @@ See also:
 ```bash
 forge-agent init
 forge-agent ask "organize my invoices by month" --json
+forge-agent --workspace .forge-agent ask "make a project status deck" --json
+forge-agent ask --help
 forge-agent do "draft a project status note"
 forge-agent organize ./invoices
 forge-agent organize ./invoices --approve
@@ -147,6 +158,7 @@ forge-agent doctor
 - Repository visibility: public.
 - Demo: ordinary-user file organizer with approval ledger and skill reuse proof.
 - Brain Adapter: local deterministic planning through `forge-agent ask`.
+- v2.0 hardening: friendlier CLI errors, `ask` input validation, global workspace flag consistency, and broader Brain Adapter tests.
 - Release honesty: this source release does not claim signed installers, production telemetry, live-news retrieval, provider-backed autonomous execution, or broad field reliability.
 
 ## What is included
@@ -161,19 +173,21 @@ forge-agent doctor
 - Operation history and schedule registry.
 - Local content skill packs for PPT outline, report, news brief, and storyboard artifacts.
 - Product, MVP, commercialization, architecture, validation, and competitive-analysis docs.
-- GitHub Actions smoke CI and tests for the public runtime/demo/organizer/lifecycle/product/brain path.
+- GitHub Actions smoke CI and tests for the public runtime/demo/organizer/lifecycle/product/brain/entrypoint path.
 
 ## Validation
 
 ```bash
 python -m compileall src tests
-python -m pytest -q tests/test_public_runtime.py tests/test_organizer.py tests/test_skills_lifecycle.py tests/test_product_packs.py tests/test_brain_adapter.py
+python -m pytest -q tests/test_public_runtime.py tests/test_organizer.py tests/test_skills_lifecycle.py tests/test_product_packs.py tests/test_brain_adapter.py tests/test_entrypoint_errors.py tests/test_entrypoint_workspace.py tests/test_entrypoint_ask_validation.py
 forge-agent demo --kind file-organizer --json
 forge-agent organize ./invoices --json
 forge-agent ask "organize my receipts" --json
+forge-agent --workspace .forge-agent ask "organize my receipts" --json
+forge-agent ask --help
 ```
 
-GitHub Actions validates Python 3.11 and 3.12, compile checks, public runtime/demo tests, organizer tests, skill lifecycle tests, product pack tests, Brain Adapter tests, the file-organizer demo, real organizer dry-run, rollback behavior, schedule registry, content artifacts, `forge-agent ask`, and demo evidence files.
+GitHub Actions validates Python 3.11 and 3.12, compile checks, public runtime/demo tests, organizer tests, skill lifecycle tests, product pack tests, Brain Adapter tests, entrypoint hardening tests, the file-organizer demo, real organizer dry-run, rollback behavior, schedule registry, content artifacts, `forge-agent ask`, workspace-aware ask usage, ask validation, and demo evidence files.
 
 The original RC10 source package contains a larger runtime and test suite. The public repository is being normalized around the ordinary-user product surface first.
 
