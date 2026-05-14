@@ -39,6 +39,7 @@ class OrganizeResult:
     created_skill: bool
     planned_moves: list[OrganizeMove] = field(default_factory=list)
     moved_files: list[OrganizeMove] = field(default_factory=list)
+    skipped_files: list[dict[str, str]] = field(default_factory=list)
     manifest_path: str | None = None
     operation_id: str | None = None
     messages: list[str] = field(default_factory=list)
@@ -123,17 +124,25 @@ class FileOrganizer:
         self.approvals.decide(approval.approval_id, "approved")
         operation_id = str(uuid.uuid4())
         moved: list[OrganizeMove] = []
-        skipped: list[OrganizeMove] = []
+        skipped: list[dict[str, str]] = []
         for item in planned:
             target = Path(item.destination)
             if target.exists():
-                skipped.append(item)
+                skipped.append({**item.to_dict(), "reason": "destination already exists"})
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(item.source, item.destination)
             moved.append(item)
         self.skill_store.mark_used(skill.skill_id, success=True)
-        manifest_path = self._write_manifest(source, output, skill.skill_id, approval.approval_id, moved, operation_id=operation_id)
+        manifest_path = self._write_manifest(
+            source,
+            output,
+            skill.skill_id,
+            approval.approval_id,
+            moved,
+            skipped_files=skipped,
+            operation_id=operation_id,
+        )
         messages = [
             f"Moved {len(moved)} files.",
             f"Manifest written to {manifest_path}",
@@ -152,6 +161,7 @@ class FileOrganizer:
             created_skill=created,
             planned_moves=planned,
             moved_files=moved,
+            skipped_files=skipped,
             manifest_path=str(manifest_path),
             operation_id=operation_id,
             messages=messages,
@@ -210,7 +220,17 @@ class FileOrganizer:
             moves.append(OrganizeMove(source=str(path), destination=str(destination), month=month))
         return moves
 
-    def _write_manifest(self, source: Path, output: Path, skill_id: str, approval_id: str, moved: list[OrganizeMove], *, operation_id: str) -> Path:
+    def _write_manifest(
+        self,
+        source: Path,
+        output: Path,
+        skill_id: str,
+        approval_id: str,
+        moved: list[OrganizeMove],
+        *,
+        skipped_files: list[dict[str, str]] | None = None,
+        operation_id: str,
+    ) -> Path:
         self.operations_dir.mkdir(parents=True, exist_ok=True)
         manifest_path = self.operations_dir / f"organize-{operation_id}.json"
         manifest = {
@@ -221,6 +241,7 @@ class FileOrganizer:
             "skill_id": skill_id,
             "approval_id": approval_id,
             "moved_files": [item.to_dict() for item in moved],
+            "skipped_files": skipped_files or [],
         }
         manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         self.workspace.mkdir(parents=True, exist_ok=True)
