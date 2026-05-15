@@ -157,7 +157,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 def _print_cli_error(message: str, *, error: str, json_output: bool) -> int:
     if json_output:
-        print(json.dumps({"error": error, "message": message}, ensure_ascii=False, indent=2))
+        print(json.dumps({"ok": False, "error": error, "message": message}, ensure_ascii=False, indent=2))
     else:
         print(message)
     return 2
