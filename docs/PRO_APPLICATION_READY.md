@@ -2,11 +2,11 @@
 
 ## Current readiness estimate
 
-This repository is now a credible early-stage open-source application candidate with a working ordinary-user automation MVP plus a v2.0 product-hardening line.
+This repository is now a stronger early-stage open-source application candidate with a working ordinary-user automation MVP, tagged v1.9/v2.0 releases, v2.1 file-safety hardening, and v2.2 CLI reliability hardening.
 
-Estimated readiness: **82%**.
+Estimated readiness: **86%**.
 
-The next lift toward 90% is external signal: stars, issues from real users, screenshots/GIFs, a tagged v2.0 release, and feedback from people trying the CLI on real folders.
+The next lift toward 90% is external signal: stars, issues from real users, screenshots/GIFs, a tagged v2.2 release, and feedback from people trying the CLI on real folders.
 
 ## Why the project is eligible to discuss
 
@@ -18,7 +18,11 @@ Forge Agent is a zero-configuration skill autopilot for ordinary users. A user g
 
 v1.9 added a local Brain Adapter planning layer so ordinary-language requests can become structured plans while Forge Agent remains responsible for preview, approval, evidence, history, rollback, and skill lifecycle behavior.
 
-v2.0 hardens that MVP with friendlier CLI errors, workspace-aware ask usage, ask validation, help output, JSON error output, and broader deterministic Brain Adapter tests.
+v2.0 hardened that MVP with friendlier CLI errors, workspace-aware ask usage, ask validation, help output, JSON error output, and broader deterministic Brain Adapter tests.
+
+v2.1 hardened file safety by skipping existing destinations instead of overwriting, exposing skipped files in JSON/manifests, and preserving organize evidence during rollback.
+
+v2.2 hardened CLI reliability by returning structured JSON errors for supported file-related failures when users request JSON output.
 
 ```text
 Brain suggests. Forge Agent governs.
@@ -54,7 +58,9 @@ The main branch now includes:
 - v1.7 news brief template generation;
 - v1.8 video storyboard generation;
 - v1.9 Brain Adapter planning with `forge-agent ask`;
-- v2.0 product hardening for CLI consistency, input validation, and stronger tests.
+- v2.0 product hardening for CLI consistency, input validation, and stronger tests;
+- v2.1 file safety for overwrite prevention and skipped-file evidence;
+- v2.2 CLI reliability for structured JSON error output.
 
 Useful validation commands:
 
@@ -70,11 +76,11 @@ forge-agent make ppt "project status update"
 
 ## Suggested 500-character qualification text
 
-I am the primary maintainer of Forge Agent, an MIT-licensed local-first automation agent for ordinary users. It turns plain-language requests into local plans and reusable skills, previews risky work, asks approval before file moves, records evidence, and supports rollback. v2.0 hardens CLI consistency, user-facing errors, ask validation, and deterministic planning tests. Codex would help review PRs, expand tests, and normalize the larger RC10 runtime.
+Forge Agent is an MIT-licensed local-first automation agent for ordinary users. It has public v1.9/v2.0 releases, active PR history, CI on Python 3.11/3.12, Brain Adapter planning, approval-gated organize/rollback, manifests, v2.1 file-safety hardening, and v2.2 CLI reliability work. It targets an important ecosystem gap: making agent automation usable without expert setup.
 
 ## Suggested API credits text
 
-I would use API credits to test planning, skill generation, PR review, issue triage, release-note drafting, and security-review workflows for Forge Agent. The goal is to improve the open-source runtime, strengthen ordinary-user automation, expand automated tests, and harden approval-gated operations before broader release.
+I would use API credits for planning tests, skill generation, PR review, issue triage, release-note drafting, and security-review workflows for Forge Agent. The goal is to improve the open-source runtime, strengthen ordinary-user automation, expand automated tests, and harden approval-gated file operations before broader release.
 
 ## Honest limitations
 
@@ -85,9 +91,9 @@ I would use API credits to test planning, skill generation, PR review, issue tri
 - The larger RC10 runtime is still being normalized into the public repo.
 - The project should not claim production readiness yet.
 
-## Recommended before submitting
+## Recommended follow-up after submitting
 
-- Create a GitHub release: `v2.0.0-product-hardening` after the v2.0 evidence PR lands.
+- Create a GitHub release: `v2.2.0-cli-reliability` after the v2.2 docs PR lands.
 - Add a screenshot or short GIF of the demo and `forge-agent ask` output.
 - Ask a few people to star or try the repository.
 - Keep the application wording honest and focused on usability innovation, not exaggerated adoption.
