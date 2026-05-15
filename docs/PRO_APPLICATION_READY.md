@@ -2,11 +2,11 @@
 
 ## Current readiness estimate
 
-This repository is now a stronger early-stage open-source application candidate with a working ordinary-user automation MVP, tagged v1.9/v2.0 releases, v2.1 file-safety hardening, and v2.2 CLI reliability hardening.
+This repository is now a stronger early-stage open-source application candidate with a working ordinary-user automation MVP, tagged v1.9/v2.0/v2.2 releases, v2.1 file-safety hardening, v2.2 CLI reliability hardening, and v2.3 JSON consistency work.
 
-Estimated readiness: **86%**.
+Estimated readiness: **88%**.
 
-The next lift toward 90% is external signal: stars, issues from real users, screenshots/GIFs, a tagged v2.2 release, and feedback from people trying the CLI on real folders.
+The next lift toward 90% is external signal: stars, issues from real users, screenshots/GIFs, a tagged v2.3 release, and feedback from people trying the CLI on real folders.
 
 ## Why the project is eligible to discuss
 
@@ -23,6 +23,8 @@ v2.0 hardened that MVP with friendlier CLI errors, workspace-aware ask usage, as
 v2.1 hardened file safety by skipping existing destinations instead of overwriting, exposing skipped files in JSON/manifests, and preserving organize evidence during rollback.
 
 v2.2 hardened CLI reliability by returning structured JSON errors for supported file-related failures when users request JSON output.
+
+v2.3 expands JSON consistency across more command groups, including history, schedule, skills, and approvals missing-resource failures.
 
 ```text
 Brain suggests. Forge Agent governs.
@@ -60,7 +62,8 @@ The main branch now includes:
 - v1.9 Brain Adapter planning with `forge-agent ask`;
 - v2.0 product hardening for CLI consistency, input validation, and stronger tests;
 - v2.1 file safety for overwrite prevention and skipped-file evidence;
-- v2.2 CLI reliability for structured JSON error output.
+- v2.2 CLI reliability for structured JSON error output;
+- v2.3 broader JSON consistency for history, schedule, skills, and approvals failure behavior.
 
 Useful validation commands:
 
@@ -76,7 +79,7 @@ forge-agent make ppt "project status update"
 
 ## Suggested 500-character qualification text
 
-Forge Agent is an MIT-licensed local-first automation agent for ordinary users. It has public v1.9/v2.0 releases, active PR history, CI on Python 3.11/3.12, Brain Adapter planning, approval-gated organize/rollback, manifests, v2.1 file-safety hardening, and v2.2 CLI reliability work. It targets an important ecosystem gap: making agent automation usable without expert setup.
+Forge Agent is an MIT-licensed local-first automation agent for ordinary users. It has public releases, active PR history, CI on Python 3.11/3.12, Brain Adapter planning, approval-gated organize/rollback, manifests, v2.1 file safety, v2.2 CLI reliability, and v2.3 JSON consistency. It targets a key gap: making agent automation usable without expert setup.
 
 ## Suggested API credits text
 
@@ -93,7 +96,7 @@ I would use API credits for planning tests, skill generation, PR review, issue t
 
 ## Recommended follow-up after submitting
 
-- Create a GitHub release: `v2.2.0-cli-reliability` after the v2.2 docs PR lands.
+- Create a GitHub release: `v2.3.0-json-consistency` after the v2.3 docs PR lands.
 - Add a screenshot or short GIF of the demo and `forge-agent ask` output.
 - Ask a few people to star or try the repository.
 - Keep the application wording honest and focused on usability innovation, not exaggerated adoption.
