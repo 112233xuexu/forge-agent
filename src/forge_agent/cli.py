@@ -207,7 +207,8 @@ def _handle_history(args: argparse.Namespace, parser: argparse.ArgumentParser) -
         return 0
     if args.history_command == "show":
         try: data = history.show(args.operation_id)
-        except FileNotFoundError as exc: print(str(exc)); return 2
+        except FileNotFoundError as exc:
+            return _print_cli_error(str(exc), error="file_not_found", json_output=args.json)
         print(json.dumps(data, ensure_ascii=False, indent=2)); return 0
     _print_subcommand_help(parser, "history"); return 0
 
@@ -227,7 +228,8 @@ def _handle_schedule(args: argparse.Namespace, parser: argparse.ArgumentParser) 
         return 0
     if args.schedule_command in {"pause", "resume"}:
         try: task = store.set_status(args.task_id, "paused" if args.schedule_command == "pause" else "active")
-        except KeyError as exc: print(str(exc)); return 2
+        except KeyError as exc:
+            return _print_cli_error(str(exc), error="not_found", json_output=args.json)
         if args.json: print(json.dumps(task.to_dict(), ensure_ascii=False, indent=2))
         else: print(f"{task.status}: {task.task_id} {task.schedule} -> {task.command}")
         return 0
