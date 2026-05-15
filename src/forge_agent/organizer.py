@@ -195,7 +195,7 @@ class FileOrganizer:
             restored.append(OrganizeMove(source=str(current), destination=str(original), month=move.month))
         manifest["rolled_back_at"] = datetime.now(timezone.utc).isoformat()
         manifest["restored_files"] = [item.to_dict() for item in restored]
-        manifest["skipped_files"] = skipped
+        manifest["rollback_skipped_files"] = skipped
         manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         return RollbackResult(
             operation_id=operation_id,
