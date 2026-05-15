@@ -154,18 +154,27 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.print_help(); return 0
 
 
+def _print_cli_error(message: str, *, error: str, json_output: bool) -> int:
+    if json_output:
+        print(json.dumps({"error": error, "message": message}, ensure_ascii=False, indent=2))
+    else:
+        print(message)
+    return 2
+
+
 def _handle_organize(args: argparse.Namespace) -> int:
     organizer = FileOrganizer(Path(args.workspace))
     try:
         result = organizer.organize_by_month(args.source, output_dir=args.output, approve=args.approve)
     except FileNotFoundError as exc:
-        print(str(exc)); return 2
+        return _print_cli_error(str(exc), error="file_not_found", json_output=args.json)
     if args.json:
         print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2)); return 0
     print(f"Forge Agent file organizer\nSource: {result.source_dir}\nOutput: {result.output_dir}\nMode: {result.mode}\nApproval: {result.approval_id}\nSkill: {result.skill_name} ({result.skill_id})")
     print(f"Planned moves: {len(result.planned_moves)}")
     if result.operation_id: print(f"Operation: {result.operation_id}")
     if result.moved_files: print(f"Moved files: {len(result.moved_files)}")
+    if result.skipped_files: print(f"Skipped files: {len(result.skipped_files)}")
     if result.manifest_path: print(f"Manifest: {result.manifest_path}")
     for message in result.messages: print(f"- {message}")
     for item in result.planned_moves[:20]: print(f"  {item.source} -> {item.destination}")
@@ -177,7 +186,7 @@ def _handle_rollback(args: argparse.Namespace) -> int:
     try:
         result = organizer.rollback_operation(args.operation_id) if args.operation_id else organizer.rollback_last()
     except FileNotFoundError as exc:
-        print(str(exc)); return 2
+        return _print_cli_error(str(exc), error="file_not_found", json_output=args.json)
     if args.json:
         print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2)); return 0
     print(f"Forge Agent organize rollback\nOperation: {result.operation_id}\nRestored files: {len(result.restored_files)}\nSkipped files: {len(result.skipped_files)}")
