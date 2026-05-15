@@ -91,6 +91,7 @@ def build_parser() -> argparse.ArgumentParser:
     approvals_decide = approvals_sub.add_parser("decide", help="approve or deny a request")
     approvals_decide.add_argument("approval_id", help="approval request id")
     approvals_decide.add_argument("--decision", required=True, choices=["approved", "denied"], help="approval decision")
+    approvals_decide.add_argument("--json", action="store_true", help="print JSON instead of human text")
 
     demo_cmd = sub.add_parser("demo", help="run an ordinary-user demo")
     demo_cmd.add_argument("--kind", default="file-organizer", choices=["file-organizer"], help="demo kind")
@@ -267,7 +268,13 @@ def _handle_approvals(args: argparse.Namespace, parser: argparse.ArgumentParser)
         for item in approvals: print(f"{item.status:<9} {item.approval_id} {item.risk}: {item.action}")
         return 0
     if args.approvals_command == "decide":
-        item = ledger.decide(args.approval_id, args.decision); print(json.dumps(item.to_dict(), ensure_ascii=False, indent=2)); return 0
+        try:
+            item = ledger.decide(args.approval_id, args.decision)
+        except KeyError as exc:
+            return _print_cli_error(str(exc), error="not_found", json_output=args.json)
+        if args.json:
+            print(json.dumps(item.to_dict(), ensure_ascii=False, indent=2)); return 0
+        print(json.dumps(item.to_dict(), ensure_ascii=False, indent=2)); return 0
     _print_subcommand_help(parser, "approvals"); return 0
 
 
