@@ -1,5 +1,32 @@
 # Changelog
 
+## v2.3.0-json-consistency
+
+Expands CLI JSON consistency across more command groups so automation receives structured JSON failures instead of plain text.
+
+### Added
+
+- Structured JSON error output for `history show <missing> --json`.
+- Structured JSON error output for `schedule pause <missing> --json`.
+- Structured JSON error output for `schedule resume <missing> --json`.
+- Structured JSON error output for `skills --json show <missing>`.
+- Structured JSON error output for `skills --json promote <missing>`.
+- Structured JSON error output for `approvals decide <missing> --decision approved --json`.
+- Test coverage for history, schedule, skills, and approvals JSON failure behavior.
+- Documentation: `docs/RELEASE_NOTES_V2_3.md`.
+
+### Product meaning
+
+v2.3 makes the CLI more reliable for automation beyond the v2.2 organize/rollback scope.
+
+```text
+JSON requested -> predictable JSON success or predictable JSON failure
+```
+
+### Honest limitation
+
+v2.3 does not yet guarantee every possible CLI failure is structured JSON. Argument-parser errors from `argparse` are still mostly default CLI text.
+
 ## v2.2.0-cli-reliability
 
 Hardens CLI JSON mode so file-related failures return structured JSON errors instead of plain text.
