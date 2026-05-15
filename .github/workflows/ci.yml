@@ -21,7 +21,7 @@ jobs:
       - name: Compile source and tests
         run: python -m compileall src tests
       - name: Run public runtime, organizer, lifecycle, product, brain, and entrypoint tests
-        run: python -m pytest -q tests/test_public_runtime.py tests/test_organizer.py tests/test_organizer_skipped_json.py tests/test_skills_lifecycle.py tests/test_product_packs.py tests/test_brain_adapter.py tests/test_entrypoint_errors.py tests/test_entrypoint_workspace.py tests/test_entrypoint_ask_validation.py
+        run: python -m pytest -q tests/test_public_runtime.py tests/test_organizer.py tests/test_organizer_skipped_json.py tests/test_rollback_evidence.py tests/test_skills_lifecycle.py tests/test_product_packs.py tests/test_brain_adapter.py tests/test_entrypoint_errors.py tests/test_entrypoint_workspace.py tests/test_entrypoint_ask_validation.py
       - name: Run ordinary-user file organizer demo
         run: forge-agent demo --kind file-organizer --json
       - name: Run real organizer dry-run smoke test
