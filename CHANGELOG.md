@@ -1,5 +1,30 @@
 # Changelog
 
+## v2.2.0-cli-reliability
+
+Hardens CLI JSON mode so file-related failures return structured JSON errors instead of plain text.
+
+### Added
+
+- Structured JSON error output for `forge-agent organize <missing> --json`.
+- Structured JSON error output for `forge-agent organize-rollback --json` when no previous operation exists.
+- Shared CLI error helper for file-related failures.
+- Human organize output now includes skipped file counts when applicable.
+- Test coverage for CLI JSON error behavior.
+- Documentation: `docs/RELEASE_NOTES_V2_2.md`.
+
+### Product meaning
+
+v2.2 makes the CLI more reliable for automation.
+
+```text
+JSON requested -> JSON success or JSON error -> stable automation behavior
+```
+
+### Honest limitation
+
+v2.2 focuses on organize and rollback file-related failures. Broader JSON error consistency for every command remains future work.
+
 ## v2.1.0-file-safety
 
 Hardens approved file organization by preventing destination overwrites and making skipped files visible in JSON and manifests.
