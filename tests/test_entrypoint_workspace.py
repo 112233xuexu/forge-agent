@@ -89,6 +89,8 @@ def test_ask_attaches_bounded_memory_metadata(monkeypatch, capsys, tmp_path):
         "bounded": True,
         "limit": 5,
         "include_sensitive": False,
+        "scope_filter": [],
+        "wing_filter": [],
         "sensitive_requires_explicit_recall": True,
     }
     assert store.show(public.id).last_used_at is not None
@@ -122,6 +124,8 @@ def test_ask_no_memory_disables_memory_metadata(monkeypatch, capsys, tmp_path):
     data = json.loads(capsys.readouterr().out)
     assert data["metadata"]["memory_used"] == []
     assert data["metadata"]["memory_policy"]["enabled"] is False
+    assert data["metadata"]["memory_policy"]["scope_filter"] == []
+    assert data["metadata"]["memory_policy"]["wing_filter"] == []
     assert store.show(public.id).last_used_at is None
 
 
@@ -155,6 +159,44 @@ def test_ask_memory_limit_controls_recall_count(monkeypatch, capsys, tmp_path):
     assert len(memory_used) == 1
     assert memory_used[0]["id"] in {first.id, second.id}
     assert data["metadata"]["memory_policy"]["limit"] == 1
+
+
+def test_ask_memory_scope_and_wing_filters(monkeypatch, capsys, tmp_path):
+    store = MemoryStore(tmp_path)
+    project = store.add("Invoice approval project rule", scope="project", wing="project", room="invoices")
+    skill = store.add("Invoice approval skill rule", scope="skill", wing="skills", room="invoices")
+    operation = store.add("Invoice approval operation rule", scope="operation", wing="operations", room="invoices")
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "forge-agent",
+            "--workspace",
+            str(tmp_path),
+            "ask",
+            "--memory-scope",
+            "skill",
+            "--memory-wing",
+            "skills",
+            "organize",
+            "invoice",
+            "approval",
+            "--json",
+        ],
+    )
+
+    exit_code = cli_entrypoint()
+
+    assert exit_code == 0
+    data = json.loads(capsys.readouterr().out)
+    memory_used = data["metadata"]["memory_used"]
+    assert [item["id"] for item in memory_used] == [skill.id]
+    assert data["metadata"]["memory_policy"]["scope_filter"] == ["skill"]
+    assert data["metadata"]["memory_policy"]["wing_filter"] == ["skills"]
+    assert store.show(project.id).last_used_at is None
+    assert store.show(skill.id).last_used_at is not None
+    assert store.show(operation.id).last_used_at is None
 
 
 def test_ask_include_sensitive_memory_requires_explicit_flag(monkeypatch, capsys, tmp_path):
