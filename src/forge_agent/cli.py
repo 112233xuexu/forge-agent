@@ -58,9 +58,10 @@ def build_parser() -> argparse.ArgumentParser:
     memory_show = memory_sub.add_parser("show", help="show one memory item")
     memory_show.add_argument("memory_id")
     memory_show.add_argument("--json", action="store_true")
-    memory_forget = memory_sub.add_parser("forget", help="mark one memory item as forgotten")
-    memory_forget.add_argument("memory_id")
-    memory_forget.add_argument("--json", action="store_true")
+    for name in ["forget", "quarantine", "restore"]:
+        memory_action = memory_sub.add_parser(name, help=f"mark one memory item as {name}d")
+        memory_action.add_argument("memory_id")
+        memory_action.add_argument("--json", action="store_true")
     memory_search = memory_sub.add_parser("search", help="search active memories")
     memory_search.add_argument("query", nargs="+")
     memory_search.add_argument("--limit", type=int, default=10)
@@ -70,6 +71,10 @@ def build_parser() -> argparse.ArgumentParser:
     memory_audit = memory_sub.add_parser("audit", help="show memory audit log")
     memory_audit.add_argument("--limit", type=int, default=50)
     memory_audit.add_argument("--json", action="store_true")
+    memory_export = memory_sub.add_parser("export", help="export memory palace bundle")
+    memory_export.add_argument("--active-only", action="store_true", help="exclude forgotten and quarantined memories")
+    memory_export.add_argument("--audit-limit", type=int, default=1000)
+    memory_export.add_argument("--json", action="store_true")
     memory_doctor = memory_sub.add_parser("doctor", help="show memory store health")
     memory_doctor.add_argument("--json", action="store_true")
 
@@ -248,6 +253,20 @@ def _handle_memory(args: argparse.Namespace, parser: argparse.ArgumentParser) ->
             else:
                 print(f"Forgot memory: {item.id}")
             return 0
+        if command == "quarantine":
+            item = store.quarantine(args.memory_id)
+            if wants_json:
+                _print_json_success({"memory": item.to_dict()})
+            else:
+                print(f"Quarantined memory: {item.id}")
+            return 0
+        if command == "restore":
+            item = store.restore(args.memory_id)
+            if wants_json:
+                _print_json_success({"memory": item.to_dict()})
+            else:
+                print(f"Restored memory: {item.id}")
+            return 0
         if command == "search":
             items = store.search(" ".join(args.query), limit=args.limit)
             if wants_json:
@@ -273,12 +292,19 @@ def _handle_memory(args: argparse.Namespace, parser: argparse.ArgumentParser) ->
                 for row in rows:
                     print(f"{row.get('created_at')} {row.get('action')} {row.get('memory_id')}")
             return 0
+        if command == "export":
+            bundle = store.export_bundle(include_inactive=not args.active_only, audit_limit=args.audit_limit)
+            if wants_json:
+                _print_json_success({"export": bundle})
+            else:
+                print(json.dumps(bundle, ensure_ascii=False, indent=2))
+            return 0
         if command == "doctor":
             status = store.doctor()
             if wants_json:
                 _print_json_success({"doctor": status})
             else:
-                print(f"Memory root: {status['root']}\nActive: {status['active']}\nForgotten: {status['forgotten']}")
+                print(f"Memory root: {status['root']}\nActive: {status['active']}\nForgotten: {status['forgotten']}\nQuarantined: {status['quarantined']}")
             return 0
     except KeyError as exc:
         return _print_cli_error(str(exc), error="not_found", json_output=wants_json)
