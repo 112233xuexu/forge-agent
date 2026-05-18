@@ -63,6 +63,47 @@ def test_memory_store_quarantine_restore_and_export(tmp_path):
     assert "export" in audit_actions
 
 
+def test_memory_store_recall_scores_reasons_and_last_used(tmp_path):
+    store = MemoryStore(tmp_path / "workspace")
+    invoice = store.add(
+        "Invoices should be organized by month after approval",
+        scope="project",
+        room="files",
+        closet="invoices",
+        drawer="rules",
+    )
+    storyboard = store.add(
+        "Storyboards use a 30-second structure",
+        scope="skill",
+        wing="skills",
+        room="storyboard",
+    )
+
+    matches = store.recall("organize invoices by month", limit=2)
+
+    assert [match.memory.id for match in matches] == [invoice.id]
+    assert matches[0].score > 0
+    assert any("content token match" in reason for reason in matches[0].reasons)
+    assert store.show(invoice.id).last_used_at is not None
+    assert store.show(storyboard.id).last_used_at is None
+    assert "recall" in [row["action"] for row in store.audit()]
+
+
+def test_memory_store_recall_is_bounded_and_excludes_sensitive_by_default(tmp_path):
+    store = MemoryStore(tmp_path / "workspace")
+    public = store.add("Use approval before organizing private files")
+    sensitive = store.add("Sensitive approval secret", safety="sensitive")
+
+    default_matches = store.recall("approval secret organizing", limit=5)
+    assert [match.memory.id for match in default_matches] == [public.id]
+
+    sensitive_matches = store.recall("approval secret organizing", limit=5, include_sensitive=True)
+    assert {match.memory.id for match in sensitive_matches} == {public.id, sensitive.id}
+
+    limited_matches = store.recall("approval secret organizing", limit=1, include_sensitive=True)
+    assert len(limited_matches) == 1
+
+
 def test_memory_store_doctor_initializes_palace(tmp_path):
     store = MemoryStore(tmp_path / "workspace")
 
@@ -77,3 +118,4 @@ def test_memory_store_doctor_initializes_palace(tmp_path):
     assert palace["version"] == 1
     assert "wing" in palace["hierarchy"]
     assert palace["policy"]["restore_requires_explicit_command"] is True
+    assert palace["policy"]["sensitive_recall_requires_explicit_flag"] is True
