@@ -123,6 +123,37 @@ def test_memory_cli_recall_json_and_sensitive_gate(capsys, tmp_path):
     assert {match["memory"]["id"] for match in recalled_sensitive["matches"]} == {public_id, sensitive_id}
 
 
+def test_memory_cli_recall_scope_and_wing_json(capsys, tmp_path):
+    workspace = tmp_path / "workspace"
+
+    main([
+        "--workspace", str(workspace), "memory", "add", "Invoice approval project rule",
+        "--scope", "project", "--wing", "project", "--json",
+    ])
+    project_id = json.loads(capsys.readouterr().out)["memory"]["id"]
+    main([
+        "--workspace", str(workspace), "memory", "add", "Invoice approval skill rule",
+        "--scope", "skill", "--wing", "skills", "--json",
+    ])
+    skill_id = json.loads(capsys.readouterr().out)["memory"]["id"]
+
+    exit_code = main([
+        "--workspace", str(workspace), "memory", "recall", "invoice", "approval",
+        "--scope", "project", "--json",
+    ])
+    assert exit_code == 0
+    scoped = json.loads(capsys.readouterr().out)
+    assert [match["memory"]["id"] for match in scoped["matches"]] == [project_id]
+
+    exit_code = main([
+        "--workspace", str(workspace), "memory", "recall", "invoice", "approval",
+        "--wing", "skills", "--json",
+    ])
+    assert exit_code == 0
+    winged = json.loads(capsys.readouterr().out)
+    assert [match["memory"]["id"] for match in winged["matches"]] == [skill_id]
+
+
 def test_memory_cli_missing_memory_json_error(capsys, tmp_path):
     exit_code = main([
         "--workspace",
@@ -157,3 +188,4 @@ def test_memory_cli_doctor_and_palace_json(capsys, tmp_path):
     assert palace["palace"]["version"] == 1
     assert palace["palace"]["policy"]["restore_requires_explicit_command"] is True
     assert palace["palace"]["policy"]["sensitive_recall_requires_explicit_flag"] is True
+    assert palace["palace"]["policy"]["scoped_recall_supported"] is True
