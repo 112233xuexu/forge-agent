@@ -10,7 +10,7 @@ from .cli import cli_entrypoint as legacy_cli_entrypoint
 from .memory import MemoryStore
 
 
-ASK_USAGE = """usage: forge-agent ask [--json] [--no-memory] [--memory-limit N] <request>
+ASK_USAGE = """usage: forge-agent ask [--json] [--no-memory] [--memory-limit N] [--include-sensitive-memory] <request>
 
 Turn a plain-language request into a local Forge plan.
 
@@ -19,6 +19,7 @@ Examples:
   forge-agent --workspace .forge-agent ask "make a project status deck" --json
   forge-agent ask --no-memory "organize my invoices" --json
   forge-agent ask --memory-limit 2 "organize my invoices" --json
+  forge-agent ask --include-sensitive-memory "organize my invoices" --json
 """
 
 
@@ -33,6 +34,7 @@ class AskOptions:
     wants_json: bool
     memory_enabled: bool
     memory_limit: int
+    include_sensitive_memory: bool
     goal_parts: list[str]
 
 
@@ -109,6 +111,7 @@ def _handle_ask(argv: list[str], *, workspace: str = ".forge-agent") -> int:
         workspace=workspace,
         enabled=options.memory_enabled,
         limit=options.memory_limit,
+        include_sensitive=options.include_sensitive_memory,
     )
     data = plan.to_dict()
     if options.wants_json:
@@ -134,6 +137,7 @@ def _parse_ask_options(argv: list[str]) -> AskOptions:
     wants_json = False
     memory_enabled = True
     memory_limit = 5
+    include_sensitive_memory = False
     goal_parts: list[str] = []
     index = 0
     while index < len(argv):
@@ -144,6 +148,10 @@ def _parse_ask_options(argv: list[str]) -> AskOptions:
             continue
         if item == "--no-memory":
             memory_enabled = False
+            index += 1
+            continue
+        if item == "--include-sensitive-memory":
+            include_sensitive_memory = True
             index += 1
             continue
         if item == "--memory-limit":
@@ -170,6 +178,7 @@ def _parse_ask_options(argv: list[str]) -> AskOptions:
         wants_json=wants_json,
         memory_enabled=memory_enabled,
         memory_limit=memory_limit,
+        include_sensitive_memory=include_sensitive_memory,
         goal_parts=goal_parts,
     )
 
@@ -188,7 +197,14 @@ def _print_ask_error(error: str, message: str, *, wants_json: bool) -> int:
     return 2
 
 
-def _attach_memory_recall(plan: BrainPlan, *, workspace: str, enabled: bool = True, limit: int = 5) -> None:
+def _attach_memory_recall(
+    plan: BrainPlan,
+    *,
+    workspace: str,
+    enabled: bool = True,
+    limit: int = 5,
+    include_sensitive: bool = False,
+) -> None:
     """Attach bounded memory recall metadata to a plan.
 
     Memory can inform planning metadata, but it does not execute actions,
@@ -196,24 +212,26 @@ def _attach_memory_recall(plan: BrainPlan, *, workspace: str, enabled: bool = Tr
     """
 
     normalized_limit = max(0, limit)
+    effective_include_sensitive = bool(include_sensitive and enabled and normalized_limit > 0)
     plan.metadata["memory_policy"] = {
         "enabled": enabled,
         "bounded": True,
         "limit": normalized_limit,
-        "include_sensitive": False,
+        "include_sensitive": effective_include_sensitive,
         "sensitive_requires_explicit_recall": True,
     }
     if not enabled or normalized_limit == 0:
         plan.metadata["memory_used"] = []
         return
     store = MemoryStore(Path(workspace))
-    matches = store.recall(plan.goal, limit=normalized_limit, include_sensitive=False)
+    matches = store.recall(plan.goal, limit=normalized_limit, include_sensitive=effective_include_sensitive)
     plan.metadata["memory_used"] = [
         {
             "id": match.memory.id,
             "scope": match.memory.scope,
             "wing": match.memory.wing,
             "room": match.memory.room,
+            "safety": match.memory.safety,
             "score": match.score,
             "reasons": match.reasons,
         }

@@ -157,6 +157,69 @@ def test_ask_memory_limit_controls_recall_count(monkeypatch, capsys, tmp_path):
     assert data["metadata"]["memory_policy"]["limit"] == 1
 
 
+def test_ask_include_sensitive_memory_requires_explicit_flag(monkeypatch, capsys, tmp_path):
+    store = MemoryStore(tmp_path)
+    public = store.add("Invoice public rule should be organized by month only after preview", room="invoices")
+    sensitive = store.add("Sensitive invoice secret is available only by explicit opt in", safety="sensitive")
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "forge-agent",
+            "--workspace",
+            str(tmp_path),
+            "ask",
+            "--include-sensitive-memory",
+            "organize",
+            "invoice",
+            "secret",
+            "--json",
+        ],
+    )
+
+    exit_code = cli_entrypoint()
+
+    assert exit_code == 0
+    data = json.loads(capsys.readouterr().out)
+    memory_used = data["metadata"]["memory_used"]
+    assert {item["id"] for item in memory_used} == {public.id, sensitive.id}
+    assert {item["safety"] for item in memory_used} == {"normal", "sensitive"}
+    assert data["metadata"]["memory_policy"]["include_sensitive"] is True
+    assert store.show(public.id).last_used_at is not None
+    assert store.show(sensitive.id).last_used_at is not None
+
+
+def test_ask_include_sensitive_memory_is_ignored_when_memory_disabled(monkeypatch, capsys, tmp_path):
+    store = MemoryStore(tmp_path)
+    sensitive = store.add("Sensitive invoice secret", safety="sensitive")
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "forge-agent",
+            "--workspace",
+            str(tmp_path),
+            "ask",
+            "--no-memory",
+            "--include-sensitive-memory",
+            "invoice",
+            "secret",
+            "--json",
+        ],
+    )
+
+    exit_code = cli_entrypoint()
+
+    assert exit_code == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["metadata"]["memory_used"] == []
+    assert data["metadata"]["memory_policy"]["enabled"] is False
+    assert data["metadata"]["memory_policy"]["include_sensitive"] is False
+    assert store.show(sensitive.id).last_used_at is None
+
+
 def test_ask_invalid_memory_limit_json_error(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr(
         sys,
