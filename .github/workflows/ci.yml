@@ -145,6 +145,29 @@ jobs:
           assert opt_in['metadata']['memory_policy']['include_sensitive'] is True
           assert any(item['safety'] == 'sensitive' for item in opt_in['metadata']['memory_used'])
           PY
+      - name: Run v2.6 scoped memory retrieval smoke test
+        run: |
+          forge-agent --workspace /tmp/forge-agent-ci-scoped-memory memory add "invoice approval project rule" --scope project --wing project --json
+          forge-agent --workspace /tmp/forge-agent-ci-scoped-memory memory add "invoice approval skill rule" --scope skill --wing skills --json
+          forge-agent --workspace /tmp/forge-agent-ci-scoped-memory memory recall invoice approval --scope project --json > /tmp/forge-agent-ci-scoped-memory-project.json
+          forge-agent --workspace /tmp/forge-agent-ci-scoped-memory memory recall invoice approval --wing skills --json > /tmp/forge-agent-ci-scoped-memory-skills.json
+          forge-agent --workspace /tmp/forge-agent-ci-scoped-memory ask --memory-scope skill --memory-wing skills "organize invoice approval" --json > /tmp/forge-agent-ci-scoped-ask.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          project = json.loads(Path('/tmp/forge-agent-ci-scoped-memory-project.json').read_text(encoding='utf-8'))
+          skills = json.loads(Path('/tmp/forge-agent-ci-scoped-memory-skills.json').read_text(encoding='utf-8'))
+          ask = json.loads(Path('/tmp/forge-agent-ci-scoped-ask.json').read_text(encoding='utf-8'))
+          assert len(project['matches']) == 1
+          assert project['matches'][0]['memory']['scope'] == 'project'
+          assert len(skills['matches']) == 1
+          assert skills['matches'][0]['memory']['wing'] == 'skills'
+          assert len(ask['metadata']['memory_used']) == 1
+          assert ask['metadata']['memory_used'][0]['scope'] == 'skill'
+          assert ask['metadata']['memory_used'][0]['wing'] == 'skills'
+          assert ask['metadata']['memory_policy']['scope_filter'] == ['skill']
+          assert ask['metadata']['memory_policy']['wing_filter'] == ['skills']
+          PY
       - name: Verify demo evidence
         run: |
           python - <<'PY'
