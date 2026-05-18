@@ -10,13 +10,15 @@ from .cli import cli_entrypoint as legacy_cli_entrypoint
 from .memory import MemoryStore
 
 
-ASK_USAGE = """usage: forge-agent ask [--json] <request>
+ASK_USAGE = """usage: forge-agent ask [--json] [--no-memory] [--memory-limit N] <request>
 
 Turn a plain-language request into a local Forge plan.
 
 Examples:
   forge-agent ask "organize my invoices by month" --json
   forge-agent --workspace .forge-agent ask "make a project status deck" --json
+  forge-agent ask --no-memory "organize my invoices" --json
+  forge-agent ask --memory-limit 2 "organize my invoices" --json
 """
 
 
@@ -24,6 +26,14 @@ Examples:
 class EntrypointOptions:
     workspace: str
     command_argv: list[str]
+
+
+@dataclass
+class AskOptions:
+    wants_json: bool
+    memory_enabled: bool
+    memory_limit: int
+    goal_parts: list[str]
 
 
 def cli_entrypoint() -> int:
@@ -77,32 +87,31 @@ def _handle_ask(argv: list[str], *, workspace: str = ".forge-agent") -> int:
         print(ASK_USAGE)
         return 0
 
-    wants_json = False
-    cleaned: list[str] = []
-    for item in argv:
-        if item == "--json":
-            wants_json = True
-        else:
-            cleaned.append(item)
+    options = _parse_ask_options(argv)
+    if options.memory_limit < 0:
+        return _print_ask_error(
+            "invalid_memory_limit",
+            "--memory-limit must be zero or greater.",
+            wants_json=options.wants_json,
+        )
 
-    goal = " ".join(cleaned).strip()
+    goal = " ".join(options.goal_parts).strip()
     if not goal:
-        error = {
-            "error": "missing_request",
-            "message": "Provide a request after `forge-agent ask`.",
-            "usage": "forge-agent ask \"organize my invoices by month\" --json",
-        }
-        if wants_json:
-            print(json.dumps(error, ensure_ascii=False, indent=2), file=sys.stderr)
-        else:
-            print("Forge Agent ask error: provide a request after `forge-agent ask`.", file=sys.stderr)
-            print("Example: forge-agent ask \"organize my invoices by month\" --json", file=sys.stderr)
-        return 2
+        return _print_ask_error(
+            "missing_request",
+            "Provide a request after `forge-agent ask`; please provide a request.",
+            wants_json=options.wants_json,
+        )
 
     plan = BrainAdapter().plan(goal)
-    _attach_memory_recall(plan, workspace=workspace)
+    _attach_memory_recall(
+        plan,
+        workspace=workspace,
+        enabled=options.memory_enabled,
+        limit=options.memory_limit,
+    )
     data = plan.to_dict()
-    if wants_json:
+    if options.wants_json:
         print(json.dumps(data, ensure_ascii=False, indent=2))
         return 0
     print("Forge Agent brain plan")
@@ -121,15 +130,84 @@ def _handle_ask(argv: list[str], *, workspace: str = ".forge-agent") -> int:
     return 0
 
 
-def _attach_memory_recall(plan: BrainPlan, *, workspace: str) -> None:
+def _parse_ask_options(argv: list[str]) -> AskOptions:
+    wants_json = False
+    memory_enabled = True
+    memory_limit = 5
+    goal_parts: list[str] = []
+    index = 0
+    while index < len(argv):
+        item = argv[index]
+        if item == "--json":
+            wants_json = True
+            index += 1
+            continue
+        if item == "--no-memory":
+            memory_enabled = False
+            index += 1
+            continue
+        if item == "--memory-limit":
+            if index + 1 >= len(argv):
+                memory_limit = -1
+                index += 1
+                continue
+            try:
+                memory_limit = int(argv[index + 1])
+            except ValueError:
+                memory_limit = -1
+            index += 2
+            continue
+        if item.startswith("--memory-limit="):
+            try:
+                memory_limit = int(item.split("=", 1)[1])
+            except ValueError:
+                memory_limit = -1
+            index += 1
+            continue
+        goal_parts.append(item)
+        index += 1
+    return AskOptions(
+        wants_json=wants_json,
+        memory_enabled=memory_enabled,
+        memory_limit=memory_limit,
+        goal_parts=goal_parts,
+    )
+
+
+def _print_ask_error(error: str, message: str, *, wants_json: bool) -> int:
+    payload = {
+        "error": error,
+        "message": message,
+        "usage": "forge-agent ask \"organize my invoices by month\" --json",
+    }
+    if wants_json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2), file=sys.stderr)
+    else:
+        print(f"Forge Agent ask error: {message}", file=sys.stderr)
+        print("Example: forge-agent ask \"organize my invoices by month\" --json", file=sys.stderr)
+    return 2
+
+
+def _attach_memory_recall(plan: BrainPlan, *, workspace: str, enabled: bool = True, limit: int = 5) -> None:
     """Attach bounded memory recall metadata to a plan.
 
     Memory can inform planning metadata, but it does not execute actions,
     approve actions, or bypass dry-run/rollback behavior.
     """
 
+    normalized_limit = max(0, limit)
+    plan.metadata["memory_policy"] = {
+        "enabled": enabled,
+        "bounded": True,
+        "limit": normalized_limit,
+        "include_sensitive": False,
+        "sensitive_requires_explicit_recall": True,
+    }
+    if not enabled or normalized_limit == 0:
+        plan.metadata["memory_used"] = []
+        return
     store = MemoryStore(Path(workspace))
-    matches = store.recall(plan.goal, limit=5, include_sensitive=False)
+    matches = store.recall(plan.goal, limit=normalized_limit, include_sensitive=False)
     plan.metadata["memory_used"] = [
         {
             "id": match.memory.id,
@@ -141,9 +219,3 @@ def _attach_memory_recall(plan: BrainPlan, *, workspace: str) -> None:
         }
         for match in matches
     ]
-    plan.metadata["memory_policy"] = {
-        "bounded": True,
-        "limit": 5,
-        "include_sensitive": False,
-        "sensitive_requires_explicit_recall": True,
-    }
