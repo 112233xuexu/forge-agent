@@ -129,6 +129,22 @@ jobs:
           assert disabled['metadata']['memory_used'] == []
           assert disabled['metadata']['memory_policy']['enabled'] is False
           PY
+      - name: Run v2.6 sensitive memory opt-in smoke test
+        run: |
+          forge-agent --workspace /tmp/forge-agent-ci-sensitive-ask memory add "invoice organization public rule" --json
+          forge-agent --workspace /tmp/forge-agent-ci-sensitive-ask memory add "sensitive invoice secret" --safety sensitive --json
+          forge-agent --workspace /tmp/forge-agent-ci-sensitive-ask ask "invoice secret" --json > /tmp/forge-agent-ci-sensitive-default.json
+          forge-agent --workspace /tmp/forge-agent-ci-sensitive-ask ask --include-sensitive-memory "invoice secret" --json > /tmp/forge-agent-ci-sensitive-opt-in.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          default = json.loads(Path('/tmp/forge-agent-ci-sensitive-default.json').read_text(encoding='utf-8'))
+          opt_in = json.loads(Path('/tmp/forge-agent-ci-sensitive-opt-in.json').read_text(encoding='utf-8'))
+          assert default['metadata']['memory_policy']['include_sensitive'] is False
+          assert all(item['safety'] == 'normal' for item in default['metadata']['memory_used'])
+          assert opt_in['metadata']['memory_policy']['include_sensitive'] is True
+          assert any(item['safety'] == 'sensitive' for item in opt_in['metadata']['memory_used'])
+          PY
       - name: Verify demo evidence
         run: |
           python - <<'PY'
