@@ -92,6 +92,37 @@ def test_memory_cli_quarantine_restore_and_export_json(capsys, tmp_path):
     assert exported["export"]["memories"][0]["id"] == memory_id
 
 
+def test_memory_cli_recall_json_and_sensitive_gate(capsys, tmp_path):
+    workspace = tmp_path / "workspace"
+
+    main(["--workspace", str(workspace), "memory", "add", "Approval is required before invoice organization", "--json"])
+    public_id = json.loads(capsys.readouterr().out)["memory"]["id"]
+    main(["--workspace", str(workspace), "memory", "add", "Sensitive invoice secret", "--safety", "sensitive", "--json"])
+    sensitive_id = json.loads(capsys.readouterr().out)["memory"]["id"]
+
+    exit_code = main(["--workspace", str(workspace), "memory", "recall", "invoice", "approval", "--json"])
+    assert exit_code == 0
+    recalled = json.loads(capsys.readouterr().out)
+    assert recalled["ok"] is True
+    assert [match["memory"]["id"] for match in recalled["matches"]] == [public_id]
+    assert recalled["matches"][0]["score"] > 0
+    assert recalled["matches"][0]["reasons"]
+
+    exit_code = main([
+        "--workspace",
+        str(workspace),
+        "memory",
+        "recall",
+        "invoice",
+        "secret",
+        "--include-sensitive",
+        "--json",
+    ])
+    assert exit_code == 0
+    recalled_sensitive = json.loads(capsys.readouterr().out)
+    assert {match["memory"]["id"] for match in recalled_sensitive["matches"]} == {public_id, sensitive_id}
+
+
 def test_memory_cli_missing_memory_json_error(capsys, tmp_path):
     exit_code = main([
         "--workspace",
@@ -125,3 +156,4 @@ def test_memory_cli_doctor_and_palace_json(capsys, tmp_path):
     assert palace["ok"] is True
     assert palace["palace"]["version"] == 1
     assert palace["palace"]["policy"]["restore_requires_explicit_command"] is True
+    assert palace["palace"]["policy"]["sensitive_recall_requires_explicit_flag"] is True
