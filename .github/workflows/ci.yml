@@ -102,9 +102,11 @@ jobs:
         run: |
           forge-agent --workspace /tmp/forge-agent-ci-memory-ask memory add "invoices should be organized by month only after preview" --json
           forge-agent --workspace /tmp/forge-agent-ci-memory-ask memory add "sensitive invoice secret should not be injected" --safety sensitive --json
-          forge-agent --workspace /tmp/forge-agent-ci-memory-ask ask "organize invoices by month" --json | python - <<'PY'
-          import json, sys
-          data = json.load(sys.stdin)
+          forge-agent --workspace /tmp/forge-agent-ci-memory-ask ask "organize invoices by month" --json > /tmp/forge-agent-ci-memory-ask-plan.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('/tmp/forge-agent-ci-memory-ask-plan.json').read_text(encoding='utf-8'))
           memory_used = data['metadata']['memory_used']
           assert len(memory_used) == 1
           assert memory_used[0]['score'] > 0
