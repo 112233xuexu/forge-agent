@@ -70,6 +70,8 @@ def build_parser() -> argparse.ArgumentParser:
     memory_recall.add_argument("query", nargs="+")
     memory_recall.add_argument("--limit", type=int, default=5)
     memory_recall.add_argument("--include-sensitive", action="store_true")
+    memory_recall.add_argument("--scope", action="append", default=[], help="only recall memories with this scope; repeatable")
+    memory_recall.add_argument("--wing", action="append", default=[], help="only recall memories with this wing; repeatable")
     memory_recall.add_argument("--json", action="store_true")
     memory_palace = memory_sub.add_parser("palace", help="show palace map")
     memory_palace.add_argument("--json", action="store_true")
@@ -283,7 +285,13 @@ def _handle_memory(args: argparse.Namespace, parser: argparse.ArgumentParser) ->
                     print(f"{item.id} {item.scope}/{item.wing}/{item.room}: {item.content}")
             return 0
         if command == "recall":
-            matches = store.recall(" ".join(args.query), limit=args.limit, include_sensitive=args.include_sensitive)
+            matches = store.recall(
+                " ".join(args.query),
+                limit=args.limit,
+                include_sensitive=args.include_sensitive,
+                scopes=set(args.scope or []),
+                wings=set(args.wing or []),
+            )
             if wants_json:
                 _print_json_success({"matches": [match.to_dict() for match in matches]})
             else:
