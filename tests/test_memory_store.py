@@ -104,6 +104,29 @@ def test_memory_store_recall_is_bounded_and_excludes_sensitive_by_default(tmp_pa
     assert len(limited_matches) == 1
 
 
+def test_memory_store_recall_scope_and_wing_filters(tmp_path):
+    store = MemoryStore(tmp_path / "workspace")
+    project = store.add("Invoice approval project rule", scope="project", wing="project", room="invoices")
+    skill = store.add("Invoice approval skill rule", scope="skill", wing="skills", room="invoices")
+    operation = store.add("Invoice approval operation rule", scope="operation", wing="operations", room="invoices")
+
+    project_matches = store.recall("invoice approval", scopes={"project"})
+    assert [match.memory.id for match in project_matches] == [project.id]
+
+    skill_wing_matches = store.recall("invoice approval", wings={"skills"})
+    assert [match.memory.id for match in skill_wing_matches] == [skill.id]
+
+    combined_matches = store.recall("invoice approval", scopes={"skill", "operation"}, wings={"operations"})
+    assert [match.memory.id for match in combined_matches] == [operation.id]
+
+    assert store.show(project.id).last_used_at is not None
+    assert store.show(skill.id).last_used_at is not None
+    assert store.show(operation.id).last_used_at is not None
+    recall_audit = [row for row in store.audit() if row["action"] == "recall"][-1]
+    assert recall_audit["metadata"]["scopes"] == ["operation", "skill"]
+    assert recall_audit["metadata"]["wings"] == ["operations"]
+
+
 def test_memory_store_doctor_initializes_palace(tmp_path):
     store = MemoryStore(tmp_path / "workspace")
 
@@ -119,3 +142,4 @@ def test_memory_store_doctor_initializes_palace(tmp_path):
     assert "wing" in palace["hierarchy"]
     assert palace["policy"]["restore_requires_explicit_command"] is True
     assert palace["policy"]["sensitive_recall_requires_explicit_flag"] is True
+    assert palace["policy"]["scoped_recall_supported"] is True
