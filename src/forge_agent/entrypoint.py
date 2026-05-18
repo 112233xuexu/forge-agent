@@ -99,7 +99,7 @@ def _handle_ask(argv: list[str], *, workspace: str = ".forge-agent") -> int:
     if not goal:
         return _print_ask_error(
             "missing_request",
-            "Provide a request after `forge-agent ask`.",
+            "provide a request after `forge-agent ask`.",
             wants_json=options.wants_json,
         )
 
