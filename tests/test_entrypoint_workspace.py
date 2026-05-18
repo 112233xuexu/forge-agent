@@ -85,6 +85,7 @@ def test_ask_attaches_bounded_memory_metadata(monkeypatch, capsys, tmp_path):
     assert memory_used[0]["score"] > 0
     assert memory_used[0]["reasons"]
     assert data["metadata"]["memory_policy"] == {
+        "enabled": True,
         "bounded": True,
         "limit": 5,
         "include_sensitive": False,
@@ -92,3 +93,90 @@ def test_ask_attaches_bounded_memory_metadata(monkeypatch, capsys, tmp_path):
     }
     assert store.show(public.id).last_used_at is not None
     assert store.show(sensitive.id).last_used_at is None
+
+
+def test_ask_no_memory_disables_memory_metadata(monkeypatch, capsys, tmp_path):
+    store = MemoryStore(tmp_path)
+    public = store.add("Invoices should be organized by month only after preview", room="invoices")
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "forge-agent",
+            "--workspace",
+            str(tmp_path),
+            "ask",
+            "--no-memory",
+            "organize",
+            "invoices",
+            "by",
+            "month",
+            "--json",
+        ],
+    )
+
+    exit_code = cli_entrypoint()
+
+    assert exit_code == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["metadata"]["memory_used"] == []
+    assert data["metadata"]["memory_policy"]["enabled"] is False
+    assert store.show(public.id).last_used_at is None
+
+
+def test_ask_memory_limit_controls_recall_count(monkeypatch, capsys, tmp_path):
+    store = MemoryStore(tmp_path)
+    first = store.add("Invoices should be organized by month only after preview", room="invoices")
+    second = store.add("Invoices need approval before file movement", room="invoices")
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "forge-agent",
+            "--workspace",
+            str(tmp_path),
+            "ask",
+            "--memory-limit",
+            "1",
+            "organize",
+            "invoices",
+            "approval",
+            "--json",
+        ],
+    )
+
+    exit_code = cli_entrypoint()
+
+    assert exit_code == 0
+    data = json.loads(capsys.readouterr().out)
+    memory_used = data["metadata"]["memory_used"]
+    assert len(memory_used) == 1
+    assert memory_used[0]["id"] in {first.id, second.id}
+    assert data["metadata"]["memory_policy"]["limit"] == 1
+
+
+def test_ask_invalid_memory_limit_json_error(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "forge-agent",
+            "--workspace",
+            str(tmp_path),
+            "ask",
+            "--memory-limit",
+            "not-a-number",
+            "organize",
+            "invoices",
+            "--json",
+        ],
+    )
+
+    exit_code = cli_entrypoint()
+
+    assert exit_code == 2
+    data = json.loads(capsys.readouterr().err)
+    assert data["error"] == "invalid_memory_limit"
+    assert "memory-limit" in data["message"]
