@@ -84,6 +84,13 @@ jobs:
           test -f /tmp/forge-agent-ci-memory/memory/index.jsonl
           test -f /tmp/forge-agent-ci-memory/memory/audit.jsonl
           test -f /tmp/forge-agent-ci-memory/memory/palace.json
+      - name: Run v2.5 memory governance smoke test
+        run: |
+          MEMORY_ID=$(forge-agent --workspace /tmp/forge-agent-ci-memory-governance memory add "sensitive memory governance check" --safety sensitive --json | python -c "import json,sys; print(json.load(sys.stdin)['memory']['id'])")
+          forge-agent --workspace /tmp/forge-agent-ci-memory-governance memory quarantine "$MEMORY_ID" --json
+          forge-agent --workspace /tmp/forge-agent-ci-memory-governance memory restore "$MEMORY_ID" --json
+          forge-agent --workspace /tmp/forge-agent-ci-memory-governance memory export --json
+          forge-agent --workspace /tmp/forge-agent-ci-memory-governance memory doctor --json
       - name: Verify demo evidence
         run: |
           python - <<'PY'
