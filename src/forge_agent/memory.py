@@ -56,6 +56,22 @@ class MemoryItem:
         )
 
 
+@dataclass
+class MemoryRecall:
+    """A bounded, explainable memory retrieval result."""
+
+    memory: MemoryItem
+    score: float
+    reasons: list[str]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "memory": self.memory.to_dict(),
+            "score": self.score,
+            "reasons": self.reasons,
+        }
+
+
 class MemoryStore:
     """Local-first controlled memory palace store.
 
@@ -93,6 +109,8 @@ class MemoryStore:
                             "forgotten_memories_are_excluded": True,
                             "quarantined_memories_are_excluded": True,
                             "restore_requires_explicit_command": True,
+                            "sensitive_recall_requires_explicit_flag": True,
+                            "default_recall_limit": 5,
                         },
                     },
                     ensure_ascii=False,
@@ -182,6 +200,38 @@ class MemoryStore:
         self._audit("search", None, {"query": query, "count": len(matches)})
         return matches
 
+    def recall(self, query: str, *, limit: int = 5, include_sensitive: bool = False) -> list[MemoryRecall]:
+        """Return bounded, explainable memory matches for planning-time use.
+
+        This is intentionally deterministic for v2.5. It uses simple token overlap
+        and path/content matches, excludes inactive memories, and excludes sensitive
+        memories unless explicitly requested.
+        """
+        self.init()
+        tokens = self._tokens(query)
+        if not tokens or limit <= 0:
+            return []
+        candidates: list[MemoryRecall] = []
+        for item in self.list():
+            if item.safety == "sensitive" and not include_sensitive:
+                continue
+            score, reasons = self._score_item(item, tokens)
+            if score > 0:
+                candidates.append(MemoryRecall(memory=item, score=score, reasons=reasons))
+        candidates.sort(key=lambda match: (-match.score, match.memory.created_at, match.memory.id))
+        selected = candidates[:limit]
+        if selected:
+            self._mark_used([match.memory.id for match in selected])
+            refreshed = {item.id: item for item in self._read_items()}
+            for match in selected:
+                match.memory = refreshed.get(match.memory.id, match.memory)
+        self._audit(
+            "recall",
+            None,
+            {"query": query, "count": len(selected), "limit": limit, "include_sensitive": include_sensitive},
+        )
+        return selected
+
     def palace(self) -> dict[str, Any]:
         self.init()
         return json.loads(self.palace_path.read_text(encoding="utf-8"))
@@ -252,6 +302,38 @@ class MemoryStore:
         self._write_items(items)
         self._audit(action, updated.id, {"scope": updated.scope, "wing": updated.wing, "from": previous_status, "to": status})
         return updated
+
+    def _mark_used(self, memory_ids: list[str]) -> None:
+        ids = set(memory_ids)
+        now = datetime.now(timezone.utc).isoformat()
+        items = self._read_items()
+        for item in items:
+            if item.id in ids:
+                item.last_used_at = now
+        self._write_items(items)
+
+    def _score_item(self, item: MemoryItem, query_tokens: set[str]) -> tuple[float, list[str]]:
+        reasons: list[str] = []
+        score = 0.0
+        content_tokens = self._tokens(item.content)
+        path_tokens = self._tokens(" ".join([item.scope, item.wing, item.room, item.closet, item.drawer]))
+        content_overlap = query_tokens & content_tokens
+        path_overlap = query_tokens & path_tokens
+        if content_overlap:
+            score += len(content_overlap) * 2.0
+            reasons.append("content token match: " + ", ".join(sorted(content_overlap)))
+        if path_overlap:
+            score += len(path_overlap) * 1.0
+            reasons.append("palace path match: " + ", ".join(sorted(path_overlap)))
+        if item.confidence != 1.0 and score > 0:
+            score *= max(0.0, min(item.confidence, 1.0))
+            reasons.append(f"confidence adjusted: {item.confidence}")
+        return round(score, 3), reasons
+
+    @staticmethod
+    def _tokens(text: str) -> set[str]:
+        normalized = "".join(ch.lower() if ch.isalnum() else " " for ch in text)
+        return {token for token in normalized.split() if len(token) >= 2}
 
     def _read_items(self) -> list[MemoryItem]:
         if not self.index_path.exists():

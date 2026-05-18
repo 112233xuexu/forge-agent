@@ -66,6 +66,11 @@ def build_parser() -> argparse.ArgumentParser:
     memory_search.add_argument("query", nargs="+")
     memory_search.add_argument("--limit", type=int, default=10)
     memory_search.add_argument("--json", action="store_true")
+    memory_recall = memory_sub.add_parser("recall", help="recall bounded, explainable relevant memories")
+    memory_recall.add_argument("query", nargs="+")
+    memory_recall.add_argument("--limit", type=int, default=5)
+    memory_recall.add_argument("--include-sensitive", action="store_true")
+    memory_recall.add_argument("--json", action="store_true")
     memory_palace = memory_sub.add_parser("palace", help="show palace map")
     memory_palace.add_argument("--json", action="store_true")
     memory_audit = memory_sub.add_parser("audit", help="show memory audit log")
@@ -276,6 +281,16 @@ def _handle_memory(args: argparse.Namespace, parser: argparse.ArgumentParser) ->
                     print("No matching memory items.")
                 for item in items:
                     print(f"{item.id} {item.scope}/{item.wing}/{item.room}: {item.content}")
+            return 0
+        if command == "recall":
+            matches = store.recall(" ".join(args.query), limit=args.limit, include_sensitive=args.include_sensitive)
+            if wants_json:
+                _print_json_success({"matches": [match.to_dict() for match in matches]})
+            else:
+                if not matches:
+                    print("No recalled memory items.")
+                for match in matches:
+                    print(f"{match.memory.id} score={match.score} reasons={'; '.join(match.reasons)}")
             return 0
         if command == "palace":
             data = store.palace()

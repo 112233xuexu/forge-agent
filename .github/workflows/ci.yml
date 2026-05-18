@@ -80,6 +80,7 @@ jobs:
           forge-agent --workspace /tmp/forge-agent-ci-memory memory add "remember that Forge memory must be visible" --json
           forge-agent --workspace /tmp/forge-agent-ci-memory memory list --json
           forge-agent --workspace /tmp/forge-agent-ci-memory memory search visible --json
+          forge-agent --workspace /tmp/forge-agent-ci-memory memory recall visible --json
           forge-agent --workspace /tmp/forge-agent-ci-memory memory doctor --json
           test -f /tmp/forge-agent-ci-memory/memory/index.jsonl
           test -f /tmp/forge-agent-ci-memory/memory/audit.jsonl
@@ -91,6 +92,12 @@ jobs:
           forge-agent --workspace /tmp/forge-agent-ci-memory-governance memory restore "$MEMORY_ID" --json
           forge-agent --workspace /tmp/forge-agent-ci-memory-governance memory export --json
           forge-agent --workspace /tmp/forge-agent-ci-memory-governance memory doctor --json
+      - name: Run v2.5 memory recall smoke test
+        run: |
+          forge-agent --workspace /tmp/forge-agent-ci-memory-recall memory add "approval is required before invoice organization" --json
+          forge-agent --workspace /tmp/forge-agent-ci-memory-recall memory add "sensitive invoice secret" --safety sensitive --json
+          forge-agent --workspace /tmp/forge-agent-ci-memory-recall memory recall invoice approval --json
+          forge-agent --workspace /tmp/forge-agent-ci-memory-recall memory recall invoice secret --include-sensitive --json
       - name: Verify demo evidence
         run: |
           python - <<'PY'
