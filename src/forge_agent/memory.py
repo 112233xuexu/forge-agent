@@ -111,6 +111,7 @@ class MemoryStore:
                             "restore_requires_explicit_command": True,
                             "sensitive_recall_requires_explicit_flag": True,
                             "default_recall_limit": 5,
+                            "scoped_recall_supported": True,
                         },
                     },
                     ensure_ascii=False,
@@ -200,19 +201,33 @@ class MemoryStore:
         self._audit("search", None, {"query": query, "count": len(matches)})
         return matches
 
-    def recall(self, query: str, *, limit: int = 5, include_sensitive: bool = False) -> list[MemoryRecall]:
+    def recall(
+        self,
+        query: str,
+        *,
+        limit: int = 5,
+        include_sensitive: bool = False,
+        scopes: set[str] | None = None,
+        wings: set[str] | None = None,
+    ) -> list[MemoryRecall]:
         """Return bounded, explainable memory matches for planning-time use.
 
         This is intentionally deterministic for v2.5. It uses simple token overlap
-        and path/content matches, excludes inactive memories, and excludes sensitive
-        memories unless explicitly requested.
+        and path/content matches, excludes inactive memories, excludes sensitive
+        memories unless explicitly requested, and can be narrowed by scope/wing.
         """
         self.init()
         tokens = self._tokens(query)
+        normalized_scopes = self._normalize_filter(scopes)
+        normalized_wings = self._normalize_filter(wings)
         if not tokens or limit <= 0:
             return []
         candidates: list[MemoryRecall] = []
         for item in self.list():
+            if normalized_scopes and item.scope not in normalized_scopes:
+                continue
+            if normalized_wings and item.wing not in normalized_wings:
+                continue
             if item.safety == "sensitive" and not include_sensitive:
                 continue
             score, reasons = self._score_item(item, tokens)
@@ -228,7 +243,14 @@ class MemoryStore:
         self._audit(
             "recall",
             None,
-            {"query": query, "count": len(selected), "limit": limit, "include_sensitive": include_sensitive},
+            {
+                "query": query,
+                "count": len(selected),
+                "limit": limit,
+                "include_sensitive": include_sensitive,
+                "scopes": sorted(normalized_scopes),
+                "wings": sorted(normalized_wings),
+            },
         )
         return selected
 
@@ -334,6 +356,12 @@ class MemoryStore:
     def _tokens(text: str) -> set[str]:
         normalized = "".join(ch.lower() if ch.isalnum() else " " for ch in text)
         return {token for token in normalized.split() if len(token) >= 2}
+
+    @staticmethod
+    def _normalize_filter(values: set[str] | None) -> set[str]:
+        if not values:
+            return set()
+        return {value.strip() for value in values if value.strip()}
 
     def _read_items(self) -> list[MemoryItem]:
         if not self.index_path.exists():
