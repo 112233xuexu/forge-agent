@@ -10,6 +10,7 @@ from .approvals import ApprovalLedger
 from .content_packs import ContentPack
 from .file_organizer_demo import run_file_organizer_demo
 from .history import OperationHistory
+from .memory import MemoryStore
 from .organizer import FileOrganizer
 from .runtime import ForgeRuntime
 from .scheduler import ScheduleStore
@@ -38,6 +39,39 @@ def build_parser() -> argparse.ArgumentParser:
     rollback_cmd = sub.add_parser("organize-rollback", help="rollback the latest or selected approved organize operation")
     rollback_cmd.add_argument("--operation-id", help="operation id to rollback; defaults to latest organize operation")
     rollback_cmd.add_argument("--json", action="store_true", help="print JSON instead of human text")
+
+    memory_cmd = sub.add_parser("memory", help="manage the local controlled memory palace")
+    memory_sub = memory_cmd.add_subparsers(dest="memory_command")
+    memory_add = memory_sub.add_parser("add", help="add a visible memory item")
+    memory_add.add_argument("content", nargs="+", help="memory content")
+    memory_add.add_argument("--scope", default="project", choices=["user", "project", "session", "skill", "operation"])
+    memory_add.add_argument("--wing", help="memory wing; defaults to scope")
+    memory_add.add_argument("--room", default="general")
+    memory_add.add_argument("--closet", default="default")
+    memory_add.add_argument("--drawer", default="inbox")
+    memory_add.add_argument("--source", default="manual")
+    memory_add.add_argument("--safety", default="normal", choices=["normal", "sensitive"])
+    memory_add.add_argument("--json", action="store_true")
+    memory_list = memory_sub.add_parser("list", help="list active memory items")
+    memory_list.add_argument("--all", action="store_true", help="include forgotten and quarantined memories")
+    memory_list.add_argument("--json", action="store_true")
+    memory_show = memory_sub.add_parser("show", help="show one memory item")
+    memory_show.add_argument("memory_id")
+    memory_show.add_argument("--json", action="store_true")
+    memory_forget = memory_sub.add_parser("forget", help="mark one memory item as forgotten")
+    memory_forget.add_argument("memory_id")
+    memory_forget.add_argument("--json", action="store_true")
+    memory_search = memory_sub.add_parser("search", help="search active memories")
+    memory_search.add_argument("query", nargs="+")
+    memory_search.add_argument("--limit", type=int, default=10)
+    memory_search.add_argument("--json", action="store_true")
+    memory_palace = memory_sub.add_parser("palace", help="show palace map")
+    memory_palace.add_argument("--json", action="store_true")
+    memory_audit = memory_sub.add_parser("audit", help="show memory audit log")
+    memory_audit.add_argument("--limit", type=int, default=50)
+    memory_audit.add_argument("--json", action="store_true")
+    memory_doctor = memory_sub.add_parser("doctor", help="show memory store health")
+    memory_doctor.add_argument("--json", action="store_true")
 
     history_cmd = sub.add_parser("history", help="show local operation history")
     history_sub = history_cmd.add_subparsers(dest="history_command")
@@ -121,6 +155,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _handle_organize(args)
     if args.command == "organize-rollback":
         return _handle_rollback(args)
+    if args.command == "memory":
+        return _handle_memory(args, parser)
     if args.command == "history":
         return _handle_history(args, parser)
     if args.command == "schedule":
@@ -161,6 +197,94 @@ def _print_cli_error(message: str, *, error: str, json_output: bool) -> int:
     else:
         print(message)
     return 2
+
+
+def _print_json_success(payload: dict[str, object]) -> None:
+    print(json.dumps({"ok": True, **payload}, ensure_ascii=False, indent=2))
+
+
+def _handle_memory(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
+    store = MemoryStore(Path(args.workspace))
+    command = getattr(args, "memory_command", None)
+    wants_json = getattr(args, "json", False)
+    try:
+        if command == "add":
+            item = store.add(
+                " ".join(args.content),
+                scope=args.scope,
+                wing=args.wing,
+                room=args.room,
+                closet=args.closet,
+                drawer=args.drawer,
+                source=args.source,
+                safety=args.safety,
+            )
+            if wants_json:
+                _print_json_success({"memory": item.to_dict()})
+            else:
+                print(f"Added memory: {item.id} [{item.scope}/{item.wing}/{item.room}]")
+            return 0
+        if command in {None, "list"}:
+            items = store.list(include_inactive=getattr(args, "all", False))
+            if wants_json:
+                _print_json_success({"memories": [item.to_dict() for item in items]})
+            else:
+                if not items:
+                    print("No memory items yet.")
+                for item in items:
+                    print(f"{item.id} {item.status:<11} {item.scope}/{item.wing}/{item.room}: {item.content}")
+            return 0
+        if command == "show":
+            item = store.show(args.memory_id)
+            if wants_json:
+                _print_json_success({"memory": item.to_dict()})
+            else:
+                print(json.dumps(item.to_dict(), ensure_ascii=False, indent=2))
+            return 0
+        if command == "forget":
+            item = store.forget(args.memory_id)
+            if wants_json:
+                _print_json_success({"memory": item.to_dict()})
+            else:
+                print(f"Forgot memory: {item.id}")
+            return 0
+        if command == "search":
+            items = store.search(" ".join(args.query), limit=args.limit)
+            if wants_json:
+                _print_json_success({"memories": [item.to_dict() for item in items]})
+            else:
+                if not items:
+                    print("No matching memory items.")
+                for item in items:
+                    print(f"{item.id} {item.scope}/{item.wing}/{item.room}: {item.content}")
+            return 0
+        if command == "palace":
+            data = store.palace()
+            if wants_json:
+                _print_json_success({"palace": data})
+            else:
+                print(json.dumps(data, ensure_ascii=False, indent=2))
+            return 0
+        if command == "audit":
+            rows = store.audit(limit=args.limit)
+            if wants_json:
+                _print_json_success({"audit": rows})
+            else:
+                for row in rows:
+                    print(f"{row.get('created_at')} {row.get('action')} {row.get('memory_id')}")
+            return 0
+        if command == "doctor":
+            status = store.doctor()
+            if wants_json:
+                _print_json_success({"doctor": status})
+            else:
+                print(f"Memory root: {status['root']}\nActive: {status['active']}\nForgotten: {status['forgotten']}")
+            return 0
+    except KeyError as exc:
+        return _print_cli_error(str(exc), error="not_found", json_output=wants_json)
+    except ValueError as exc:
+        return _print_cli_error(str(exc), error="invalid_input", json_output=wants_json)
+    _print_subcommand_help(parser, "memory"); return 0
 
 
 def _handle_organize(args: argparse.Namespace) -> int:
