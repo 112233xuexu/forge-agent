@@ -159,7 +159,7 @@ def test_ask_memory_limit_controls_recall_count(monkeypatch, capsys, tmp_path):
 
 def test_ask_include_sensitive_memory_requires_explicit_flag(monkeypatch, capsys, tmp_path):
     store = MemoryStore(tmp_path)
-    public = store.add("Invoices should be organized by month only after preview", room="invoices")
+    public = store.add("Invoice public rule should be organized by month only after preview", room="invoices")
     sensitive = store.add("Sensitive invoice secret is available only by explicit opt in", safety="sensitive")
 
     monkeypatch.setattr(
