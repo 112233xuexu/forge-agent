@@ -60,7 +60,7 @@ class MemoryStore:
     """Local-first controlled memory palace store.
 
     The store is intentionally simple for v2.5: JSON/JSONL files, visible data,
-    explicit forget behavior, and an append-only audit log.
+    explicit governance operations, and an append-only audit log.
     """
 
     def __init__(self, workspace: str | Path) -> None:
@@ -92,6 +92,7 @@ class MemoryStore:
                             "default_safety": "normal",
                             "forgotten_memories_are_excluded": True,
                             "quarantined_memories_are_excluded": True,
+                            "restore_requires_explicit_command": True,
                         },
                     },
                     ensure_ascii=False,
@@ -158,19 +159,13 @@ class MemoryStore:
         raise KeyError(f"memory not found: {memory_id}")
 
     def forget(self, memory_id: str) -> MemoryItem:
-        self.init()
-        items = self._read_items()
-        updated: MemoryItem | None = None
-        for item in items:
-            if item.id == memory_id:
-                item.status = "forgotten"
-                updated = item
-                break
-        if updated is None:
-            raise KeyError(f"memory not found: {memory_id}")
-        self._write_items(items)
-        self._audit("forget", updated.id, {"scope": updated.scope, "wing": updated.wing})
-        return updated
+        return self._set_status(memory_id, "forgotten", action="forget")
+
+    def quarantine(self, memory_id: str) -> MemoryItem:
+        return self._set_status(memory_id, "quarantined", action="quarantine")
+
+    def restore(self, memory_id: str) -> MemoryItem:
+        return self._set_status(memory_id, "active", action="restore")
 
     def search(self, query: str, *, limit: int = 10) -> list[MemoryItem]:
         self.init()
@@ -191,6 +186,21 @@ class MemoryStore:
         self.init()
         return json.loads(self.palace_path.read_text(encoding="utf-8"))
 
+    def export_bundle(self, *, include_inactive: bool = True, audit_limit: int = 1000) -> dict[str, Any]:
+        self.init()
+        items = self.list(include_inactive=include_inactive)
+        bundle = {
+            "version": 1,
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "workspace": str(self.workspace),
+            "palace": self.palace(),
+            "memories": [item.to_dict() for item in items],
+            "audit": self.audit(limit=audit_limit),
+            "doctor": self.doctor(),
+        }
+        self._audit("export", None, {"count": len(items), "include_inactive": include_inactive})
+        return bundle
+
     def audit(self, *, limit: int = 50) -> list[dict[str, Any]]:
         self.init()
         rows: list[dict[str, Any]] = []
@@ -209,6 +219,7 @@ class MemoryStore:
         active_count = len([item for item in items if item.status == "active"])
         forgotten_count = len([item for item in items if item.status == "forgotten"])
         quarantined_count = len([item for item in items if item.status == "quarantined"])
+        sensitive_count = len([item for item in items if item.safety == "sensitive"])
         return {
             "ok": True,
             "root": str(self.root),
@@ -220,7 +231,27 @@ class MemoryStore:
             "active": active_count,
             "forgotten": forgotten_count,
             "quarantined": quarantined_count,
+            "sensitive": sensitive_count,
         }
+
+    def _set_status(self, memory_id: str, status: str, *, action: str) -> MemoryItem:
+        self.init()
+        if status not in VALID_STATUS:
+            raise ValueError(f"invalid memory status: {status}")
+        items = self._read_items()
+        updated: MemoryItem | None = None
+        previous_status: str | None = None
+        for item in items:
+            if item.id == memory_id:
+                previous_status = item.status
+                item.status = status
+                updated = item
+                break
+        if updated is None:
+            raise KeyError(f"memory not found: {memory_id}")
+        self._write_items(items)
+        self._audit(action, updated.id, {"scope": updated.scope, "wing": updated.wing, "from": previous_status, "to": status})
+        return updated
 
     def _read_items(self) -> list[MemoryItem]:
         if not self.index_path.exists():
