@@ -54,6 +54,44 @@ def test_memory_cli_add_list_show_search_forget_json(capsys, tmp_path):
     assert listed_after_forget["memories"] == []
 
 
+def test_memory_cli_quarantine_restore_and_export_json(capsys, tmp_path):
+    workspace = tmp_path / "workspace"
+
+    exit_code = main([
+        "--workspace",
+        str(workspace),
+        "memory",
+        "add",
+        "Sensitive memory should be governable",
+        "--safety",
+        "sensitive",
+        "--json",
+    ])
+    assert exit_code == 0
+    created = json.loads(capsys.readouterr().out)
+    memory_id = created["memory"]["id"]
+
+    exit_code = main(["--workspace", str(workspace), "memory", "quarantine", memory_id, "--json"])
+    assert exit_code == 0
+    quarantined = json.loads(capsys.readouterr().out)
+    assert quarantined["ok"] is True
+    assert quarantined["memory"]["status"] == "quarantined"
+
+    exit_code = main(["--workspace", str(workspace), "memory", "restore", memory_id, "--json"])
+    assert exit_code == 0
+    restored = json.loads(capsys.readouterr().out)
+    assert restored["ok"] is True
+    assert restored["memory"]["status"] == "active"
+
+    exit_code = main(["--workspace", str(workspace), "memory", "export", "--json"])
+    assert exit_code == 0
+    exported = json.loads(capsys.readouterr().out)
+    assert exported["ok"] is True
+    assert exported["export"]["version"] == 1
+    assert exported["export"]["doctor"]["sensitive"] == 1
+    assert exported["export"]["memories"][0]["id"] == memory_id
+
+
 def test_memory_cli_missing_memory_json_error(capsys, tmp_path):
     exit_code = main([
         "--workspace",
@@ -79,9 +117,11 @@ def test_memory_cli_doctor_and_palace_json(capsys, tmp_path):
     doctor = json.loads(capsys.readouterr().out)
     assert doctor["ok"] is True
     assert doctor["doctor"]["active"] == 0
+    assert doctor["doctor"]["sensitive"] == 0
 
     exit_code = main(["--workspace", str(workspace), "memory", "palace", "--json"])
     assert exit_code == 0
     palace = json.loads(capsys.readouterr().out)
     assert palace["ok"] is True
     assert palace["palace"]["version"] == 1
+    assert palace["palace"]["policy"]["restore_requires_explicit_command"] is True
