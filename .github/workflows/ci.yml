@@ -98,6 +98,18 @@ jobs:
           forge-agent --workspace /tmp/forge-agent-ci-memory-recall memory add "sensitive invoice secret" --safety sensitive --json
           forge-agent --workspace /tmp/forge-agent-ci-memory-recall memory recall invoice approval --json
           forge-agent --workspace /tmp/forge-agent-ci-memory-recall memory recall invoice secret --include-sensitive --json
+      - name: Run v2.6 memory-aware ask smoke test
+        run: |
+          forge-agent --workspace /tmp/forge-agent-ci-memory-ask memory add "invoices should be organized by month only after preview" --json
+          forge-agent --workspace /tmp/forge-agent-ci-memory-ask memory add "sensitive invoice secret should not be injected" --safety sensitive --json
+          forge-agent --workspace /tmp/forge-agent-ci-memory-ask ask "organize invoices by month" --json | python - <<'PY'
+          import json, sys
+          data = json.load(sys.stdin)
+          memory_used = data['metadata']['memory_used']
+          assert len(memory_used) == 1
+          assert memory_used[0]['score'] > 0
+          assert data['metadata']['memory_policy']['include_sensitive'] is False
+          PY
       - name: Verify demo evidence
         run: |
           python - <<'PY'
