@@ -110,7 +110,24 @@ jobs:
           memory_used = data['metadata']['memory_used']
           assert len(memory_used) == 1
           assert memory_used[0]['score'] > 0
+          assert data['metadata']['memory_policy']['enabled'] is True
           assert data['metadata']['memory_policy']['include_sensitive'] is False
+          PY
+      - name: Run v2.6 ask memory control smoke test
+        run: |
+          forge-agent --workspace /tmp/forge-agent-ci-memory-controls memory add "invoices should be organized by month only after preview" --json
+          forge-agent --workspace /tmp/forge-agent-ci-memory-controls memory add "invoices need explicit approval before movement" --json
+          forge-agent --workspace /tmp/forge-agent-ci-memory-controls ask --memory-limit 1 "organize invoices by month" --json > /tmp/forge-agent-ci-memory-controls-limit.json
+          forge-agent --workspace /tmp/forge-agent-ci-memory-controls ask --no-memory "organize invoices by month" --json > /tmp/forge-agent-ci-memory-controls-off.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          limited = json.loads(Path('/tmp/forge-agent-ci-memory-controls-limit.json').read_text(encoding='utf-8'))
+          disabled = json.loads(Path('/tmp/forge-agent-ci-memory-controls-off.json').read_text(encoding='utf-8'))
+          assert len(limited['metadata']['memory_used']) == 1
+          assert limited['metadata']['memory_policy']['limit'] == 1
+          assert disabled['metadata']['memory_used'] == []
+          assert disabled['metadata']['memory_policy']['enabled'] is False
           PY
       - name: Verify demo evidence
         run: |
