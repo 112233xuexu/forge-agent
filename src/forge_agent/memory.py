@@ -6,6 +6,7 @@ from typing import Any
 import json
 import uuid
 
+from .memory_audit import append_audit_row, read_audit_rows
 from .memory_models import DEFAULT_WINGS, VALID_SAFETY, VALID_SCOPES, VALID_STATUS, MemoryItem, MemoryRecall
 
 
@@ -212,15 +213,7 @@ class MemoryStore:
 
     def audit(self, *, limit: int = 50) -> list[dict[str, Any]]:
         self.init()
-        rows: list[dict[str, Any]] = []
-        for line in self.audit_path.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            try:
-                rows.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
-        return rows[-limit:]
+        return read_audit_rows(self.audit_path, limit=limit)
 
     def doctor(self) -> dict[str, Any]:
         self.init()
@@ -327,11 +320,4 @@ class MemoryStore:
 
     def _audit(self, action: str, memory_id: str | None, metadata: dict[str, Any] | None = None) -> None:
         self.init()
-        row = {
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "action": action,
-            "memory_id": memory_id,
-            "metadata": metadata or {},
-        }
-        with self.audit_path.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+        append_audit_row(self.audit_path, action=action, memory_id=memory_id, metadata=metadata)
