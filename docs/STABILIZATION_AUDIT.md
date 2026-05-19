@@ -4,69 +4,78 @@ This document freezes random feature expansion and records what must be stabiliz
 
 ## Current operating rule
 
-No new runtime features should be added until the core architecture is clarified.
+Forge is being repositioned as an AI butler for ordinary users:
 
-The project has useful pieces, but recent development moved too quickly. Several core files now contain too many responsibilities. Continuing to add features directly into these files will make Forge harder to maintain and harder to position against OpenClaw and Hermes Agent.
+```text
+普通人不用学软件，也能一句话把事情办完。
+```
+
+That product direction requires a clean codebase. A simple front end may hide thousands of connectors in the future, but the backend cannot become a monolith.
+
+No new runtime features should be added until the core architecture is clarified and the current codebase is reviewed file by file.
 
 ## Final product target
 
-Forge Agent is not only a memory system.
+Forge Agent is not only a memory system, not only an automation CLI, and not only a safety framework.
 
-The precise benchmark targets are:
+The product target is:
 
-1. **OpenClaw**: self-hosted agent execution, tool access, automation, messaging/workflow entry points, and practical task execution.
-2. **Hermes Agent**: persistent memory, self-improvement, experience-to-skill loops, and long-running agent continuity.
+```text
+simple request -> clear plan -> confirm important actions -> execute through apps/tools -> record result -> recover/correct when possible -> remember useful preferences for next time
+```
 
-Forge should match the useful parts of both, then exceed them on:
+The named benchmark directions are now:
 
-- Visible memory governance.
-- Human-controlled execution.
-- Approval-first safety.
-- Reversible operations.
-- Local-first auditability.
-- Skill lifecycle discipline.
-- Ordinary-user understandability.
+1. **OpenHuman**: ordinary-user AI entry point, many connected apps, simple personal assistant framing.
+2. **OpenClaw**: self-hosted agent execution, tool access, automation, messaging/workflow entry points, and practical task execution.
+3. **Hermes Agent**: persistent memory, self-improvement, experience-to-skill loops, and long-running agent continuity.
+
+Forge should match the useful parts of all three, then exceed them on:
+
+- lower user learning cost,
+- lower user time cost,
+- visible memory governance,
+- human-readable confirmation,
+- recoverable operations,
+- work records,
+- skill lifecycle discipline,
+- ordinary-user understandability,
+- and maintainable backend structure.
 
 ## What must stop now
 
-Do not continue by adding features directly into:
+Do not continue by adding features directly into already-heavy files.
+
+The immediate hotspots are:
 
 - `src/forge_agent/entrypoint.py`
 - `src/forge_agent/cli.py`
 - `src/forge_agent/memory.py`
 
-These files are still functional, but their responsibilities are now too broad.
+But the cleanup scope is larger than those files. The whole project needs a file-by-file review before broad app connectors or front-end work begins.
 
 ## Current architecture issues
 
-### 1. `entrypoint.py` has become an ask orchestration file
+### 1. `entrypoint.py` became an ask orchestration file
 
-Current responsibilities include:
+Status:
 
-- Console entrypoint wrapping.
-- Global option parsing.
-- `ask` option parsing.
-- Ask validation.
-- BrainAdapter invocation.
-- Memory recall policy.
-- Memory policy metadata construction.
-- Human output formatting.
-- JSON output formatting.
+The first stabilization extraction has already moved ask parsing, ask service assembly, and ask presentation into dedicated modules.
 
-Problem:
+Target:
 
-`entrypoint.py` should be a thin entrypoint, not the home of ask policy and memory orchestration.
-
-Target split:
-
-| New module | Responsibility |
+| Module | Responsibility |
 |---|---|
 | `ask_options.py` | Parse and validate ask-specific flags. |
 | `ask_service.py` | Build the ask plan and attach memory/tool/risk metadata. |
 | `ask_presenter.py` | Render JSON and human-readable ask output. |
 | `entrypoint.py` | Route CLI entrypoint only. |
 
-### 2. `cli.py` is becoming a monolithic command router
+Remaining rule:
+
+Do not expand `entrypoint.py` again.
+
+### 2. `cli.py` is still a monolithic command router
 
 Current responsibilities include:
 
@@ -83,7 +92,7 @@ Current responsibilities include:
 
 Problem:
 
-Every new feature expands this file. This will become unmaintainable once tool registry, risk policy, demo scenarios, and memory management commands grow.
+Every new feature expands this file. This will become unmaintainable once app connectors, front-end task schemas, ordinary-user cards, and workflow handlers grow.
 
 Target split:
 
@@ -91,15 +100,15 @@ Target split:
 |---|---|
 | `commands/memory.py` | Memory CLI parser and handlers. |
 | `commands/ask.py` | Ask CLI parser and handlers, if moved out of wrapper. |
-| `commands/tools.py` | Tool registry CLI. |
+| `commands/tools.py` | Tool/app capability CLI. |
 | `commands/skills.py` | Skill CLI. |
 | `commands/approvals.py` | Approval CLI. |
 | `commands/organize.py` | File organizer CLI. |
 | `cli.py` | Compose command parsers and dispatch only. |
 
-### 3. `memory.py` mixes model, storage, governance, retrieval, and audit
+### 3. `memory.py` is being split but is not done
 
-Current responsibilities include:
+Original responsibilities included:
 
 - Memory item dataclass.
 - Memory recall dataclass.
@@ -116,34 +125,63 @@ Current responsibilities include:
 - Doctor/status reporting.
 - Export bundle.
 
-Problem:
+Status:
 
-The memory layer is currently strong, but if update/import/dedupe/stats/aging/compaction are added here directly, the file will become another monolith.
+The extraction has started:
 
-Target split:
-
-| New module | Responsibility |
+| Module | Status |
 |---|---|
-| `memory_models.py` | `MemoryItem`, `MemoryRecall`, constants. |
-| `memory_store.py` | Read/write JSONL, basic persistence. |
-| `memory_governance.py` | forget/quarantine/restore/sensitive policy. |
-| `memory_recall.py` | Search, scoring, filters, recall result. |
-| `memory_audit.py` | Audit log append/read/export. |
-| `memory_service.py` | Public high-level memory API. |
+| `memory_models.py` | Extracted. |
+| `memory_audit.py` | Extracted. |
+| `memory_recall.py` | Extracted. |
+| `memory_store.py` | Not yet extracted. |
+| `memory_governance.py` | Not yet extracted. |
+| `memory_service.py` | Not yet extracted. |
 
-### 4. Product direction drifted from named competitors to generic categories
+Rule:
 
-The benchmark document initially drifted toward broad categories such as general assistants, coding agents, and workflow tools.
+Do not add memory features until the extraction PR is tested and merged.
 
-That is too vague.
+### 4. Product wording must stay ordinary-user-first
 
-The precise target must be:
+The product should not lead with engineering terms such as:
 
-- Match OpenClaw on execution breadth and self-hosted agent workflows.
-- Match Hermes Agent on persistent memory and self-improving skill loops.
-- Exceed both on governance, auditability, rollback, and user control.
+- rollback,
+- audit,
+- permission manifest,
+- trust kernel,
+- tool registry,
+- vector search,
+- agent framework.
 
-Benchmark docs must keep OpenClaw and Hermes Agent as named references, not just abstract market categories.
+Internally those may exist. Externally, the product should use language like:
+
+| Internal term | User-facing language |
+|---|---|
+| permission | What I can see or change |
+| approval | You confirm before I do it |
+| rollback | Restore / undo |
+| audit log | What I did |
+| memory | What I remember about you |
+| tool | An app I can use for you |
+| risk | What this may affect |
+| skill | How I should do this next time |
+
+## Full codebase cleanup requirement
+
+The whole project must be audited, not just the files touched most recently.
+
+For each source file, the cleanup pass must record:
+
+1. What the file currently does.
+2. Whether that responsibility is still correct.
+3. Whether the file is user-facing, domain logic, persistence, presentation, test support, or legacy.
+4. Whether it mixes responsibilities.
+5. What public API must remain stable.
+6. What tests protect it.
+7. Whether it should be kept, split, renamed, deprecated, or deleted.
+8. Whether product wording is ordinary-user-friendly.
+9. Whether it moves Forge toward lower learning cost and lower time cost.
 
 ## What should be preserved
 
@@ -174,7 +212,7 @@ Keep:
 
 Reason:
 
-This is a real differentiator against opaque memory systems.
+This supports long-term context and visible memory, one of Forge's strongest product pillars.
 
 ### Ask memory controls
 
@@ -190,22 +228,29 @@ Keep:
 
 Reason:
 
-This makes memory use visible and controllable, which is central to the product thesis.
+This makes memory use visible and controllable, while still supporting ordinary-user personalization.
 
-### Approval, rollback, and evidence patterns
+### Approval, recovery, and evidence patterns
 
 Keep:
 
 - approval ledger
 - dry-run organizer
 - approved organize operation
-- rollback manifest
+- rollback/recovery manifest
 - operation history
 - skill lifecycle states
 
 Reason:
 
-This is the start of Forge's advantage over autonomous but unsafe execution agents.
+These patterns should become user-facing as:
+
+```text
+I will show you first.
+You confirm before I do it.
+I keep a record.
+You can restore when possible.
+```
 
 ## What should be paused
 
@@ -213,15 +258,16 @@ Pause these until the architecture is cleaned up:
 
 - New memory commands.
 - New agent execution pipeline logic.
-- New tool registry runtime code.
+- New tool/app connector runtime code.
 - New UI/TUI/Web UI.
 - New semantic retrieval.
 - New content generation features.
 - New GitHub automation features.
+- New email/calendar integrations.
 
 ## Stabilization plan
 
-### Phase S1: Documentation and benchmark correction
+### Phase S1: Product positioning and benchmark correction
 
 Goal:
 
@@ -229,14 +275,15 @@ Clarify the product direction before more code changes.
 
 Actions:
 
-- Keep `docs/COMPETITIVE_BENCHMARK.md` focused on OpenClaw and Hermes Agent.
-- Add this stabilization audit.
-- Add a concise architecture map.
+- Make docs ordinary-user-first.
+- Include OpenHuman, OpenClaw, and Hermes Agent as named benchmark directions.
+- Add product positioning around lowering learning cost and time cost.
 
 Exit criteria:
 
-- The repo clearly states what Forge is trying to beat and why.
-- The repo clearly states what must be refactored before new features.
+- The repo clearly states who Forge is for.
+- The repo clearly states why ordinary users should care.
+- The repo avoids leading with engineering jargon.
 
 ### Phase S2: Extract ask orchestration
 
@@ -244,12 +291,9 @@ Goal:
 
 Make `entrypoint.py` thin again.
 
-Actions:
+Status:
 
-- Move ask flag parsing into `ask_options.py`.
-- Move memory-aware plan assembly into `ask_service.py`.
-- Move ask output rendering into `ask_presenter.py`.
-- Keep behavior and tests unchanged.
+Completed and merged in PR #41.
 
 Exit criteria:
 
@@ -276,7 +320,27 @@ Exit criteria:
 - Public CLI behavior unchanged.
 - `memory.py` becomes a compatibility/service layer instead of a monolith.
 
-### Phase S4: Split CLI handlers
+### Phase S4: Full codebase cleanup audit
+
+Goal:
+
+Review the entire project file by file before more feature work.
+
+Actions:
+
+- Add a codebase cleanup plan.
+- Inventory every source and test file.
+- Mark each file as keep/split/rename/deprecate/delete.
+- Record test coverage for each critical path.
+- Identify product-language mismatches.
+
+Exit criteria:
+
+- Every source file has an assigned responsibility.
+- Every major command path has a test owner.
+- No new feature work starts from unclear code.
+
+### Phase S5: Split CLI handlers
 
 Goal:
 
@@ -294,96 +358,56 @@ Exit criteria:
 - `cli.py` becomes command composition and dispatch.
 - Existing CLI tests still pass.
 
-### Phase S5: Resume feature work
+### Phase S6: Resume product feature work
 
-Only after S1-S4 should new runtime features continue.
+Only after S1-S5 should larger runtime features continue.
 
 Next feature after stabilization:
 
-- v2.7 Agent Execution Pipeline.
-
-## OpenClaw/Hermes benchmark correction
-
-### OpenClaw match targets
-
-Forge must eventually match:
-
-- Self-hosted local/server deployment.
-- Long-running agent workflows.
-- Tool execution.
-- Messaging or command entry points.
-- File/system task execution.
-- Coding/GitHub workflows.
-- Skill or plugin extensibility.
-
-Forge should exceed:
-
-- Safer default execution.
-- Stronger approval gates.
-- Better audit logs.
-- More visible tool risk metadata.
-- Rollback-first file operations.
-- Less hidden authority.
-
-### Hermes Agent match targets
-
-Forge must eventually match:
-
-- Persistent memory.
-- Experience accumulation.
-- Self-improving skill loops.
-- Skill creation and refinement.
-- Multi-environment operation.
-- Low-cost self-hosted use.
-
-Forge should exceed:
-
-- More visible memory storage.
-- Stronger forget/quarantine/restore semantics.
-- Explicit sensitive memory policy.
-- Exportable memory bundles.
-- Governed skill lifecycle instead of uncontrolled self-modification.
+- ordinary-user task card schema,
+- then app-backed workflow prototypes.
 
 ## Immediate next PR sequence
 
-Do not start `v2.7 Agent Execution Pipeline` directly.
-
-Use this sequence first:
-
-1. **PR A: stabilization documents**
+1. **PR A: product positioning docs**
+   - `README.md`
+   - `PRODUCT_POSITIONING.md`
    - `COMPETITIVE_BENCHMARK.md`
    - `STABILIZATION_AUDIT.md`
+   - `CODEBASE_CLEANUP_PLAN.md`
 
-2. **PR B: ask extraction with no behavior change**
-   - Extract `ask_options.py`.
-   - Extract `ask_service.py`.
-   - Preserve tests.
+2. **PR B: finish memory extraction with no behavior change**
+   - Keep public `MemoryStore` API stable.
+   - Run memory tests and CI.
 
-3. **PR C: memory extraction with no behavior change**
-   - Extract memory models/audit/recall helpers.
-   - Preserve public `MemoryStore` API.
+3. **PR C: full codebase cleanup audit**
+   - File-by-file inventory.
+   - Responsibility map.
+   - Test ownership map.
 
 4. **PR D: CLI handler extraction with no behavior change**
    - Split command handlers.
    - Preserve JSON output contracts.
 
-5. **PR E: v2.7 Agent Execution Pipeline**
-   - Only after architecture is stable.
+5. **PR E: ordinary-user task card schema**
+   - Only after cleanup.
 
 ## Decision rule during stabilization
 
 A change is allowed only if it does one of these:
 
-- Clarifies product direction.
+- Clarifies ordinary-user product direction.
 - Reduces file responsibility.
 - Preserves existing behavior while improving structure.
 - Adds tests that protect existing behavior.
-- Improves OpenClaw/Hermes benchmark accuracy.
+- Improves OpenHuman/OpenClaw/Hermes benchmark accuracy.
+- Reduces future user learning cost or time cost.
 
 A change is not allowed if it:
 
-- Adds a new feature.
-- Adds a new command.
+- Adds a new runtime feature before cleanup.
+- Adds a new command before cleanup.
 - Expands `entrypoint.py`, `cli.py`, or `memory.py` further.
 - Changes behavior without a stabilization reason.
 - Makes the project look more impressive but harder to maintain.
+- Uses engineering jargon as the product message.
