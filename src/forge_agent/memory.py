@@ -8,6 +8,7 @@ import uuid
 
 from .memory_audit import append_audit_row, read_audit_rows
 from .memory_models import DEFAULT_WINGS, VALID_SAFETY, VALID_SCOPES, VALID_STATUS, MemoryItem, MemoryRecall
+from .memory_recall import normalize_filter, recall_memories
 
 
 class MemoryStore:
@@ -155,24 +156,16 @@ class MemoryStore:
         memories unless explicitly requested, and can be narrowed by scope/wing.
         """
         self.init()
-        tokens = self._tokens(query)
-        normalized_scopes = self._normalize_filter(scopes)
-        normalized_wings = self._normalize_filter(wings)
-        if not tokens or limit <= 0:
-            return []
-        candidates: list[MemoryRecall] = []
-        for item in self.list():
-            if normalized_scopes and item.scope not in normalized_scopes:
-                continue
-            if normalized_wings and item.wing not in normalized_wings:
-                continue
-            if item.safety == "sensitive" and not include_sensitive:
-                continue
-            score, reasons = self._score_item(item, tokens)
-            if score > 0:
-                candidates.append(MemoryRecall(memory=item, score=score, reasons=reasons))
-        candidates.sort(key=lambda match: (-match.score, match.memory.created_at, match.memory.id))
-        selected = candidates[:limit]
+        normalized_scopes = normalize_filter(scopes)
+        normalized_wings = normalize_filter(wings)
+        selected = recall_memories(
+            self.list(),
+            query,
+            limit=limit,
+            include_sensitive=include_sensitive,
+            scopes=normalized_scopes,
+            wings=normalized_wings,
+        )
         if selected:
             self._mark_used([match.memory.id for match in selected])
             refreshed = {item.id: item for item in self._read_items()}
@@ -263,35 +256,6 @@ class MemoryStore:
             if item.id in ids:
                 item.last_used_at = now
         self._write_items(items)
-
-    def _score_item(self, item: MemoryItem, query_tokens: set[str]) -> tuple[float, list[str]]:
-        reasons: list[str] = []
-        score = 0.0
-        content_tokens = self._tokens(item.content)
-        path_tokens = self._tokens(" ".join([item.scope, item.wing, item.room, item.closet, item.drawer]))
-        content_overlap = query_tokens & content_tokens
-        path_overlap = query_tokens & path_tokens
-        if content_overlap:
-            score += len(content_overlap) * 2.0
-            reasons.append("content token match: " + ", ".join(sorted(content_overlap)))
-        if path_overlap:
-            score += len(path_overlap) * 1.0
-            reasons.append("palace path match: " + ", ".join(sorted(path_overlap)))
-        if item.confidence != 1.0 and score > 0:
-            score *= max(0.0, min(item.confidence, 1.0))
-            reasons.append(f"confidence adjusted: {item.confidence}")
-        return round(score, 3), reasons
-
-    @staticmethod
-    def _tokens(text: str) -> set[str]:
-        normalized = "".join(ch.lower() if ch.isalnum() else " " for ch in text)
-        return {token for token in normalized.split() if len(token) >= 2}
-
-    @staticmethod
-    def _normalize_filter(values: set[str] | None) -> set[str]:
-        if not values:
-            return set()
-        return {value.strip() for value in values if value.strip()}
 
     def _read_items(self) -> list[MemoryItem]:
         if not self.index_path.exists():
