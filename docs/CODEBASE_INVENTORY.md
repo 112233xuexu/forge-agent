@@ -22,15 +22,18 @@ A later cleanup PR should expand this into a stricter per-file checklist with li
 |---|---|---|---|---|---|
 | `src/forge_agent/__init__.py` | Public package surface and version export. | Keep tiny public package surface. | Keep. | P2 | import/package smoke via CI. |
 | `src/forge_agent/entrypoint.py` | Console entrypoint and ask routing after extraction. | Thin route-only entrypoint. | Keep thin; do not add product logic. | P0 | `test_entrypoint_*`. |
-| `src/forge_agent/ask_options.py` | Ask-specific flag parsing. | Own ask option parsing and validation only. | Keep; add direct tests if flags grow. | P1 | `test_entrypoint_ask_validation.py`. |
+| `src/forge_agent/ask_options.py` | Ask-specific flag parsing. | Own ask option parsing and validation only. | Keep; direct tests added. | P1 | `test_ask_options.py`, `test_entrypoint_ask_validation.py`. |
 | `src/forge_agent/ask_service.py` | Build ask plan and attach memory recall metadata. | Own ask orchestration service. | Keep; later attach ordinary-user task-card schema here, not in entrypoint. | P0 | `test_entrypoint_workspace.py`. |
 | `src/forge_agent/ask_presenter.py` | Render ask output and ask errors. | Own ask presentation. | Keep; later improve user-facing wording. | P1 | `test_entrypoint_errors.py`. |
 | `src/forge_agent/brain.py` | Deterministic planner and `BrainPlan`. | Planner model and local planning rules. | Keep; later split rules if planner grows. | P1 | `test_brain_adapter.py`. |
-| `src/forge_agent/cli.py` | Builds all command parsers and handles many commands. | Compose command parsers and dispatch only. | Split into `commands/*` modules. | P0 | CLI tests. |
+| `src/forge_agent/cli.py` | Builds most command parsers and handles many commands; memory command has been extracted. | Compose command parsers and dispatch only. | Continue splitting into `commands/*` modules. | P0 | CLI tests. |
+| `src/forge_agent/cli_common.py` | Shared CLI JSON success/error/help helpers. | Common CLI presentation helpers. | Keep; avoid growing into business logic. | P1 | CLI tests. |
+| `src/forge_agent/commands/__init__.py` | Commands package marker. | Commands package marker. | Keep. | P2 | import smoke via CI. |
+| `src/forge_agent/commands/memory.py` | Memory command parser and handler. | Own memory CLI only. | Keep; do not add MemoryStore internals here. | P0 | `test_cli_memory.py`. |
 | `src/forge_agent/memory.py` | Public `MemoryStore` plus remaining persistence/governance/search/export/doctor logic. | Public memory service/compatibility surface. | Keep API stable; continue extracting internals later. | P0 | `test_memory_store.py`, `test_cli_memory.py`. |
 | `src/forge_agent/memory_models.py` | Memory dataclasses and constants. | Memory models only. | Keep. | P1 | memory tests. |
 | `src/forge_agent/memory_audit.py` | Memory audit append/read helpers. | Memory audit helper module. | Keep. | P1 | memory tests. |
-| `src/forge_agent/memory_recall.py` | Deterministic recall, scoring, tokenization, filters. | Recall algorithm module. | Keep; add direct tests before changing ranking logic. | P1 | memory recall tests via memory store. |
+| `src/forge_agent/memory_recall.py` | Deterministic recall, scoring, tokenization, filters. | Recall algorithm module. | Keep; direct tests added. | P1 | `test_memory_recall.py`, memory store tests. |
 | `src/forge_agent/approvals.py` | Approval ledger. | Internal approval records, user-facing “you confirm before I do it.” | Audit wording later; keep behavior now. | P1 | approval CLI/error tests. |
 | `src/forge_agent/history.py` | Operation history. | Internal work record store, user-facing “what I did.” | Keep; later align with task-card result schema. | P1 | history/organizer tests. |
 | `src/forge_agent/organizer.py` | File organizer workflow, dry-run, approved move, rollback evidence. | First proof workflow for preview-confirm-execute-record-restore. | Keep; later expose through ordinary-user task card. | P0 | organizer and rollback tests. |
@@ -51,18 +54,25 @@ A later cleanup PR should expand this into a stricter per-file checklist with li
 - `memory_models.py`
 - `memory_audit.py`
 - `memory_recall.py`
+- `commands/memory.py`
+- `cli_common.py`
 
 These were created by stabilization work and should not be reworked again immediately unless tests reveal an issue.
 
-### Next split target
+### Current split status
 
-`src/forge_agent/cli.py` is the next major cleanup target.
+`src/forge_agent/cli.py` is the major cleanup target.
 
-Proposed split:
+Completed:
 
 ```text
 src/forge_agent/commands/__init__.py
 src/forge_agent/commands/memory.py
+```
+
+Remaining proposed split:
+
+```text
 src/forge_agent/commands/organize.py
 src/forge_agent/commands/skills.py
 src/forge_agent/commands/approvals.py
@@ -107,7 +117,9 @@ Do this only after CLI is split and tests are stable.
 | `tests/test_cli_approvals_json_errors.py` | Approval CLI JSON errors. | Keep. | P1 |
 | `tests/test_cli_error_envelope.py` | CLI error envelope behavior. | Keep. | P1 |
 | `tests/test_memory_store.py` | MemoryStore behavior. | Keep; expand if memory internals change. | P0 |
-| `tests/test_cli_memory.py` | Memory CLI behavior. | Keep; critical before CLI split. | P0 |
+| `tests/test_cli_memory.py` | Memory CLI behavior. | Keep; critical before and after CLI split. | P0 |
+| `tests/test_ask_options.py` | Ask options direct parsing behavior. | Keep. | P1 |
+| `tests/test_memory_recall.py` | Memory recall direct scoring/filtering behavior. | Keep. | P1 |
 | `tests/test_skills_lifecycle.py` | Skill lifecycle. | Keep; product pillar for repeated workflows. | P1 |
 | `tests/test_product_packs.py` | Content pack generation. | Keep. | P2 |
 | `tests/test_brain_adapter.py` | Local planner. | Keep; later expand for task-card schema. | P1 |
@@ -121,8 +133,6 @@ Add direct tests before changing these internals:
 
 | Gap | Why it matters | Suggested file |
 |---|---|---|
-| `ask_options.py` direct tests | Ask flag parsing is now its own module. | `tests/test_ask_options.py` |
-| `memory_recall.py` direct tests | Ranking/scoring must not change accidentally. | `tests/test_memory_recall.py` |
 | CLI command module tests | Needed before/after splitting `cli.py`. | Existing CLI tests plus focused command tests. |
 | Ordinary-user task-card schema | Needed before UI/app workflows. | `tests/test_task_card.py` |
 
@@ -144,7 +154,7 @@ Current CLI output still uses many developer-facing words. That is acceptable fo
 
 ### PR 1: Codebase inventory
 
-This PR.
+Done.
 
 Deliverable:
 
@@ -152,12 +162,16 @@ Deliverable:
 
 ### PR 2: Direct tests for extracted modules
 
-Add behavior-preserving tests for:
+Done.
+
+Added behavior-preserving tests for:
 
 - `ask_options.py`,
 - `memory_recall.py`.
 
 ### PR 3: CLI command split, phase 1
+
+In progress.
 
 Extract memory command parser/handler first.
 
