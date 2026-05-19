@@ -1,75 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 import json
 import uuid
 
-
-DEFAULT_WINGS = ["user", "project", "skills", "operations", "sessions"]
-VALID_SCOPES = {"user", "project", "session", "skill", "operation"}
-VALID_SAFETY = {"normal", "sensitive"}
-VALID_STATUS = {"active", "forgotten", "quarantined"}
-
-
-@dataclass
-class MemoryItem:
-    """A visible, forgettable memory item in the local Forge memory palace."""
-
-    id: str
-    scope: str
-    wing: str
-    room: str
-    closet: str
-    drawer: str
-    content: str
-    source: str = "manual"
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    last_used_at: str | None = None
-    confidence: float = 1.0
-    safety: str = "normal"
-    status: str = "active"
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "MemoryItem":
-        return cls(
-            id=str(data["id"]),
-            scope=str(data.get("scope", "project")),
-            wing=str(data.get("wing", data.get("scope", "project"))),
-            room=str(data.get("room", "general")),
-            closet=str(data.get("closet", "default")),
-            drawer=str(data.get("drawer", "inbox")),
-            content=str(data.get("content", "")),
-            source=str(data.get("source", "manual")),
-            created_at=str(data.get("created_at", "")),
-            last_used_at=data.get("last_used_at"),
-            confidence=float(data.get("confidence", 1.0)),
-            safety=str(data.get("safety", "normal")),
-            status=str(data.get("status", "active")),
-            metadata=dict(data.get("metadata", {})),
-        )
-
-
-@dataclass
-class MemoryRecall:
-    """A bounded, explainable memory retrieval result."""
-
-    memory: MemoryItem
-    score: float
-    reasons: list[str]
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "memory": self.memory.to_dict(),
-            "score": self.score,
-            "reasons": self.reasons,
-        }
+from .memory_audit import append_audit_row, read_audit_rows
+from .memory_models import DEFAULT_WINGS, VALID_SAFETY, VALID_SCOPES, VALID_STATUS, MemoryItem, MemoryRecall
+from .memory_recall import normalize_filter, recall_memories
 
 
 class MemoryStore:
@@ -217,24 +156,16 @@ class MemoryStore:
         memories unless explicitly requested, and can be narrowed by scope/wing.
         """
         self.init()
-        tokens = self._tokens(query)
-        normalized_scopes = self._normalize_filter(scopes)
-        normalized_wings = self._normalize_filter(wings)
-        if not tokens or limit <= 0:
-            return []
-        candidates: list[MemoryRecall] = []
-        for item in self.list():
-            if normalized_scopes and item.scope not in normalized_scopes:
-                continue
-            if normalized_wings and item.wing not in normalized_wings:
-                continue
-            if item.safety == "sensitive" and not include_sensitive:
-                continue
-            score, reasons = self._score_item(item, tokens)
-            if score > 0:
-                candidates.append(MemoryRecall(memory=item, score=score, reasons=reasons))
-        candidates.sort(key=lambda match: (-match.score, match.memory.created_at, match.memory.id))
-        selected = candidates[:limit]
+        normalized_scopes = normalize_filter(scopes)
+        normalized_wings = normalize_filter(wings)
+        selected = recall_memories(
+            self.list(),
+            query,
+            limit=limit,
+            include_sensitive=include_sensitive,
+            scopes=normalized_scopes,
+            wings=normalized_wings,
+        )
         if selected:
             self._mark_used([match.memory.id for match in selected])
             refreshed = {item.id: item for item in self._read_items()}
@@ -275,15 +206,7 @@ class MemoryStore:
 
     def audit(self, *, limit: int = 50) -> list[dict[str, Any]]:
         self.init()
-        rows: list[dict[str, Any]] = []
-        for line in self.audit_path.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            try:
-                rows.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
-        return rows[-limit:]
+        return read_audit_rows(self.audit_path, limit=limit)
 
     def doctor(self) -> dict[str, Any]:
         self.init()
@@ -334,35 +257,6 @@ class MemoryStore:
                 item.last_used_at = now
         self._write_items(items)
 
-    def _score_item(self, item: MemoryItem, query_tokens: set[str]) -> tuple[float, list[str]]:
-        reasons: list[str] = []
-        score = 0.0
-        content_tokens = self._tokens(item.content)
-        path_tokens = self._tokens(" ".join([item.scope, item.wing, item.room, item.closet, item.drawer]))
-        content_overlap = query_tokens & content_tokens
-        path_overlap = query_tokens & path_tokens
-        if content_overlap:
-            score += len(content_overlap) * 2.0
-            reasons.append("content token match: " + ", ".join(sorted(content_overlap)))
-        if path_overlap:
-            score += len(path_overlap) * 1.0
-            reasons.append("palace path match: " + ", ".join(sorted(path_overlap)))
-        if item.confidence != 1.0 and score > 0:
-            score *= max(0.0, min(item.confidence, 1.0))
-            reasons.append(f"confidence adjusted: {item.confidence}")
-        return round(score, 3), reasons
-
-    @staticmethod
-    def _tokens(text: str) -> set[str]:
-        normalized = "".join(ch.lower() if ch.isalnum() else " " for ch in text)
-        return {token for token in normalized.split() if len(token) >= 2}
-
-    @staticmethod
-    def _normalize_filter(values: set[str] | None) -> set[str]:
-        if not values:
-            return set()
-        return {value.strip() for value in values if value.strip()}
-
     def _read_items(self) -> list[MemoryItem]:
         if not self.index_path.exists():
             return []
@@ -390,11 +284,4 @@ class MemoryStore:
 
     def _audit(self, action: str, memory_id: str | None, metadata: dict[str, Any] | None = None) -> None:
         self.init()
-        row = {
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "action": action,
-            "memory_id": memory_id,
-            "metadata": metadata or {},
-        }
-        with self.audit_path.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+        append_audit_row(self.audit_path, action=action, memory_id=memory_id, metadata=metadata)
