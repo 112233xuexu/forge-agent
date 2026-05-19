@@ -1,46 +1,93 @@
 # Forge Agent
 
-Forge Agent is a local-first automation agent for ordinary users. The goal is simple: the user gives one plain-language command, while Forge Agent finds or creates the needed skill, asks before risky actions, records evidence, reuses the skill next time, and can roll back approved file operations.
+Forge Agent is an AI butler for ordinary users: people describe what they want in plain language, and Forge uses connected apps, long-term memory, clear confirmation, work records, and recovery paths to get the work done without forcing users to learn every tool.
 
-Forge Agent is being built as a zero-configuration skill autopilot, not another expert-only agent framework.
+In one sentence:
+
+```text
+普通人不用学软件，也能一句话把事情办完。
+```
+
+Forge is not meant to expose APIs, tools, scopes, prompts, or automation internals to the user. The product goal is a simple front end where the user says what they need:
+
+```text
+Use my email to send a follow-up to John.
+Create a GitHub repository for this project. I do not know how GitHub works.
+Organize this folder of invoices by month.
+Turn these notes into a clean report.
+Check whether I have important emails today.
+Remember how I like project reports formatted.
+```
+
+Behind that simple request, Forge can use memory, skills, approvals, file operations, connected apps, and task history. But the user-facing flow should stay human:
+
+```text
+You ask.
+Forge explains what it will do.
+You confirm important actions.
+Forge does the work.
+Forge records what happened.
+If possible, Forge can restore or correct the result.
+```
+
+## Core product promise
+
+Forge is designed to reduce ordinary users' learning cost and time cost.
+
+The user should not need to know:
+
+- how GitHub works,
+- how email APIs work,
+- how Notion, Calendar, Drive, or Slack integrations work,
+- how to batch organize files,
+- how to configure agent tools,
+- how to write prompts repeatedly,
+- or how to recover from mistakes manually.
+
+Forge should learn stable preferences and project context through a visible Memory Palace, then use that context to help users finish repeat work faster.
+
+The public-facing product pillars are:
+
+```text
+simple use + long-term memory + connected apps + clear confirmation + work records + recovery
+```
 
 ## Why it is different
 
-Many agent projects expose skills, tools, providers, sandboxes, gateways, and registries directly to the user. Forge Agent's product direction is to hide that complexity by default:
+Many agent projects expose skills, tools, providers, sandboxes, gateways, permissions, registries, and APIs directly to the user. Forge Agent's direction is to hide that complexity by default.
+
+The user-facing flow should be:
 
 ```text
-plain command -> intent -> local skill search -> auto-create skill if missing -> approval when risky -> execute in safe scope -> audit ledger -> rollback -> skill reuse
+plain request -> understandable plan -> confirm if important -> execute -> show result -> remember useful preferences -> allow correction/recovery
 ```
 
-v1.9 adds a local planning layer:
+The internal engineering flow can still be strict:
 
 ```text
-ordinary request -> Brain Adapter plan -> Forge preview -> approval when needed -> evidence/history -> rollback where supported
-```
-
-v2.0 hardens the product surface:
-
-```text
-clear input -> clear plan -> clear safety boundary -> clear error when something is wrong
-```
-
-v2.1 hardens file safety:
-
-```text
-safe preview -> explicit approval -> no overwrite -> visible skipped file evidence
-```
-
-v2.2 hardens CLI reliability:
-
-```text
-JSON requested -> JSON success or JSON error -> stable automation behavior
+intent -> memory recall -> skill/tool selection -> preview -> approval when needed -> execution evidence -> history -> recovery where supported -> skill reuse
 ```
 
 The product rule is:
 
 ```text
-Brain suggests. Forge Agent governs.
+Users speak in outcomes. Forge handles the software.
 ```
+
+## User-facing language
+
+Forge should avoid exposing engineering terms when ordinary language is clearer.
+
+| Internal term | User-facing language |
+|---|---|
+| permission | What I can see or change |
+| approval | You confirm before I do it |
+| rollback | Restore / undo |
+| audit log | What I did |
+| memory | What I remember about you |
+| tool | An app I can use for you |
+| risk | What this may affect |
+| skill | How I should do this next time |
 
 ## 60-second demo
 
@@ -60,7 +107,16 @@ pip install -e .
 forge-agent demo --kind file-organizer
 ```
 
-The demo creates a safe sandbox and proves automatic skill creation, approval, file organization, evidence, and skill reuse. No real user files are touched by the demo.
+The current demo creates a safe sandbox and proves automatic skill creation, approval, file organization, evidence, and skill reuse. No real user files are touched by the demo.
+
+The demo is still CLI-first today. The product direction is a simpler front end where the same workflow appears as:
+
+```text
+I found 5 invoice files.
+I can organize them by month.
+This will move files but not change file contents.
+Do you want me to continue?
+```
 
 ## Product commands
 
@@ -132,11 +188,16 @@ forge-agent skills quarantine <skill_id>
 - v2.0: product hardening for CLI consistency, input validation, error surfaces, and stronger tests.
 - v2.1: file safety hardening for destination collisions and skipped-file evidence.
 - v2.2: CLI reliability hardening for structured JSON errors.
+- v2.5-v2.6: visible Memory Palace, bounded recall, sensitive memory opt-in, ask-time memory controls, and scoped memory retrieval.
+- stabilization: ask extraction and memory extraction work to keep architecture maintainable before larger product features.
 
-The v1.4-v2.2 features are local deterministic product surfaces first. They do not yet claim full live news retrieval, real background daemon execution, `.pptx` rendering, voiceover generation, video rendering, or provider-backed autonomous execution.
+The current features are local deterministic product surfaces first. They do not yet claim full live news retrieval, real background daemon execution, `.pptx` rendering, voiceover generation, video rendering, broad app integrations, or provider-backed autonomous execution.
 
 See also:
 
+- [Product positioning](docs/PRODUCT_POSITIONING.md)
+- [Competitive benchmark and roadmap](docs/COMPETITIVE_BENCHMARK.md)
+- [Stabilization audit](docs/STABILIZATION_AUDIT.md)
 - [Ordinary-user demo guide](docs/ORDINARY_USER_DEMO.md)
 - [v1.1 organize command](docs/V1_1_ORGANIZE_COMMAND.md)
 - [v1.2 skill lifecycle](docs/V1_2_SKILL_LIFECYCLE.md)
@@ -176,17 +237,19 @@ forge-agent doctor
 - CLI entrypoint: `forge-agent`.
 - License: MIT.
 - Repository visibility: public.
+- Product direction: ordinary-user AI butler that lowers learning cost and time cost.
 - Demo: ordinary-user file organizer with approval ledger and skill reuse proof.
 - Brain Adapter: local deterministic planning through `forge-agent ask`.
-- v2.0 hardening: friendlier CLI errors, `ask` input validation, global workspace flag consistency, and broader Brain Adapter tests.
-- v2.1 hardening: organize destination collisions are skipped rather than overwritten, and skipped files are visible in JSON/manifests.
-- v2.2 hardening: supported file-related JSON mode failures return structured JSON errors.
-- Release honesty: this source release does not claim signed installers, production telemetry, live-news retrieval, provider-backed autonomous execution, or broad field reliability.
+- Memory Palace: visible local memory with recall, audit, sensitive-memory controls, and ask-time filters.
+- File safety: organize destination collisions are skipped rather than overwritten, and skipped files are visible in JSON/manifests.
+- CLI reliability: supported file-related JSON mode failures return structured JSON errors.
+- Release honesty: this source release does not claim signed installers, production telemetry, live-news retrieval, provider-backed autonomous execution, broad app integrations, or broad field reliability.
 
 ## What is included
 
 - Local runtime and CLI under `src/forge_agent`.
 - Local Brain Adapter with deterministic planning.
+- Local Memory Palace with visible storage and controlled recall.
 - Local skill store with automatic skill creation, lifecycle, and reuse.
 - Approval ledger for risky actions.
 - Deterministic file organizer demo.
@@ -215,6 +278,9 @@ The original RC10 source package contains a larger runtime and test suite. The p
 
 ## Roadmap
 
+- [Product positioning](docs/PRODUCT_POSITIONING.md)
+- [Competitive benchmark and roadmap](docs/COMPETITIVE_BENCHMARK.md)
+- [Stabilization audit](docs/STABILIZATION_AUDIT.md)
 - [Project Vision](docs/PROJECT_VISION.md)
 - [Competitive Analysis](docs/COMPETITIVE_ANALYSIS.md)
 - [MVP Roadmap](docs/MVP_ROADMAP.md)
@@ -226,7 +292,7 @@ The original RC10 source package contains a larger runtime and test suite. The p
 
 ## OpenAI Codex for OSS fit
 
-Forge Agent targets a real usability gap in open-source agent systems: skills, memory, gateways, and self-improvement are powerful, but ordinary users still face too much setup and skill-management friction. Codex would help review pull requests, triage issues, expand tests, harden approval/security paths, normalize the larger RC10 source tree, and maintain evidence-backed releases.
+Forge Agent targets a real usability gap in open-source agent systems: existing systems can be powerful, but ordinary users still face too much setup, tool knowledge, app knowledge, and recovery risk. Codex would help review pull requests, triage issues, expand tests, harden confirmation/recovery paths, normalize the larger RC10 source tree, and maintain evidence-backed releases.
 
 ## Repository owner
 

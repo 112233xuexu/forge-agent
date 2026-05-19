@@ -1,258 +1,254 @@
 # Forge Agent Competitive Benchmark and Roadmap
 
-This document turns the product direction into an explicit benchmark matrix.
+This document defines Forge Agent's product direction and competitive benchmark.
 
-Forge Agent is not only a memory system. The final target is to compete against mature products across the agent workspace category, not to build a small memory plugin.
+Forge Agent is not only a memory system, not only a CLI tool, and not only a safety framework.
 
-The goal is ambitious but specific:
+Forge Agent should become an **AI butler for ordinary users**:
 
 ```text
-Forge Agent should become a local-first, auditable, approval-aware agent workspace that can outperform mature products on controllability, inspectability, reversibility, and governed long-term memory, while matching the practical workflows users expect from modern AI agent products.
+Users describe what they want in plain language.
+Forge remembers useful context, understands the request, chooses the right connected app or local tool, explains important actions, asks before risky actions, records what happened, and helps recover when possible.
 ```
 
-Forge should not pretend to beat frontier model providers at base-model intelligence. The product target is different: beat mature products at the **agent operating layer** around the model.
+In Chinese:
 
-## North Star: beat mature products at the agent operating layer
+```text
+普通人不用学软件，也能一句话把事情办完。
+```
 
-The market has several mature product categories. Forge must benchmark against all of them, then choose where to match and where to exceed.
+The core product value is:
 
-| Product category | Mature-product expectation | Forge must match | Forge must exceed |
+```text
+reduce learning cost + reduce time cost + long-term memory + simple confirmation + work records + recovery
+```
+
+## Named competitors and benchmark targets
+
+Forge should benchmark against three named directions.
+
+| Benchmark | What it proves | Forge must learn from it | Forge should exceed it on |
 |---|---|---|---|
-| General AI assistants | Natural-language planning, project continuity, file/context awareness, useful answers | Ask interface, planning metadata, memory-aware context, useful local workflows | More visible memory, stronger audit, explicit safety policy, local-first portability |
-| AI coding agents | Project context, repo edits, PR assistance, repeatable workflows | GitHub/repo workflow support, coding task plans, tool registry | Safer execution, approval gates, rollback manifests, governed skills |
-| Agent memory systems | Long-term recall, project/user memory, low-context retrieval | Memory Palace, recall, scope filters, sensitive opt-in | Full user control: edit, forget, quarantine, restore, export, audit, policy metadata |
-| Workflow automation tools | Repeatable automations, scheduled tasks, integrations | Scheduling, task history, tool execution records | Human-readable previews, risk levels, rollback, local evidence |
-| Knowledge work products | Reports, decks, briefs, structured content | Content packs, reports, PPT outlines, storyboards | Skill reuse, memory-aware generation, audit trail, local artifact index |
-| Enterprise agent platforms | Tool registry, governance, security, observability | Tool metadata, risk policy, approvals, logs | Simpler local-first implementation with inspectable files and portable state |
+| OpenHuman | Ordinary users want one AI entry point that can connect many apps. | Simple front end, multi-app ambition, personal assistant framing. | Clear confirmation, visible memory, understandable action plans, work records, recovery, less scary app authority. |
+| OpenClaw | Self-hosted agents can execute real tools and workflows. | Tool execution, automation, local/server operation, extensibility. | Lower setup burden, safer defaults, ordinary-user language, recoverable workflows. |
+| Hermes Agent | Persistent memory and self-improving skills matter. | Long-term memory, experience accumulation, skill creation/refinement. | Visible Memory Palace, editable/forgettable memory, governed skill lifecycle, user-readable explanations. |
 
-Forge wins only if it becomes both useful and trustworthy. A feature is not enough unless it strengthens one of these mature-product superiority claims:
+Forge should not blindly race to connect the most apps first. Integration count is useful only after the product can explain actions clearly, ask for confirmation, keep records, and recover from mistakes.
 
-1. **More controllable than black-box assistants.**
-2. **More inspectable than generic agent wrappers.**
-3. **Safer than normal workflow automation.**
-4. **More portable than cloud-only memory products.**
-5. **More reusable than one-off prompt chats.**
-6. **More ordinary-user understandable than developer-only agent frameworks.**
+## North Star
 
-## Product thesis
-
-Forge Agent should compete on six layers at the same time:
-
-1. **Memory**: visible, controllable, auditable long-term context.
-2. **Planning**: plain-language goals become structured, inspectable plans.
-3. **Action**: safe tool execution with preview, approval, and rollback.
-4. **Skill**: repeated work becomes reusable, testable, promotable skills.
-5. **Governance**: every risky action has policy, evidence, and audit.
-6. **Product**: ordinary users can understand, inspect, and trust what the agent is doing.
-
-The intended differentiation is not simply "more memory" or "more tools". The intended differentiation is:
+Forge succeeds when it turns this:
 
 ```text
-memory palace + explainable recall + approval-aware execution + reusable skills + local-first auditability + ordinary-user product surface
+The user spends 30 minutes learning an app or workflow.
 ```
+
+into this:
+
+```text
+The user says one sentence, reviews one clear confirmation card, and gets the task done.
+```
+
+Example user requests:
+
+```text
+Use my email to send a follow-up to John.
+Create a GitHub repository for this project. I do not know how GitHub works.
+Organize this folder of invoices by month.
+Turn these notes into a clean report.
+Check whether I have important emails today.
+Remember how I like project reports formatted.
+```
+
+The user should not need to understand APIs, OAuth scopes, tool registries, rollback manifests, audit logs, Git internals, or agent frameworks.
+
+## Product pillars
+
+| Pillar | User-facing promise | Internal capability |
+|---|---|---|
+| Simple use | Tell Forge what outcome you want. | Intent understanding and task planning. |
+| Long-term memory | Forge remembers stable preferences and project context. | Memory Palace, scoped recall, sensitive-memory controls. |
+| Connected apps | Forge can use apps for you. | Tool/app connectors, permissions, execution contracts. |
+| Clear confirmation | Forge explains important actions before doing them. | Preview, approval, side-effect summaries. |
+| Work records | Forge can show what it did. | Operation history, memory used, tool results. |
+| Recovery | Forge helps undo or correct when possible. | Rollback/recovery recipes and skipped-file evidence. |
+| Skill reuse | Forge learns repeated workflows. | Skill lifecycle, validation, promotion, quarantine. |
+
+## User-facing language rule
+
+Technical terms can exist internally, but user-facing product language must be plain.
+
+| Internal term | User-facing language |
+|---|---|
+| permission | What I can see or change |
+| approval | You confirm before I do it |
+| rollback | Restore / undo |
+| audit log | What I did |
+| memory | What I remember about you |
+| tool | An app I can use for you |
+| risk | What this may affect |
+| skill | How I should do this next time |
 
 ## Current maturity snapshot
 
 | Area | Current maturity | Notes |
 |---|---:|---|
+| Ordinary-user product clarity | 45% | New positioning is clearer, but UI and demos are still CLI-first. |
 | Memory Palace | 70% | Strong foundation: add/list/show/search/forget/quarantine/restore/export/recall, sensitive opt-in, scoped recall. |
 | Ask / planning | 45% | Basic intent planning exists; memory-aware metadata exists; execution pipeline is still shallow. |
-| Tool execution | 35% | File organizer and content packs exist; tool registry and consistent execution contracts are incomplete. |
-| Approval and safety | 50% | Approval ledger, dry-run, rollback, quarantine patterns exist; unified risk policy is incomplete. |
+| Tool execution | 35% | File organizer and content packs exist; app connectors and tool contracts are incomplete. |
+| Confirmation and recovery | 50% | Approval ledger, dry-run, rollback, quarantine patterns exist; ordinary-user confirmation cards are not implemented yet. |
 | Skill system | 45% | Skill lifecycle exists; reuse, stats, ranking, and promotion policy need deeper integration. |
-| User experience | 25% | CLI works, but product experience is still developer-oriented. |
-| Open-source credibility | 40% | CI and PR history are good; README, architecture docs, demo assets, contributing docs, and release packaging need work. |
-| Mature-product superiority | 25% | Strong memory/governance direction exists, but workflow breadth, UI, tool registry, and product packaging are still behind mature products. |
+| Front end | 10% | CLI exists; simple ordinary-user UI is not built yet. |
+| Open-source credibility | 45% | CI and PR history are good; README and docs are improving; architecture cleanup still in progress. |
+| Mature-product superiority | 25% | Direction is clearer, but app breadth, UI, and ordinary-user flows are behind OpenHuman-like products. |
 
 ## Competitive benchmark matrix
 
 | Capability area | Benchmark expectation | Forge current state | Gap | Priority | Differentiation target |
 |---|---|---|---|---|---|
-| Long-term memory | Persistent memory, preferences, project context, recall | Local Memory Palace with visible JSONL storage and recall | Needs update/import/dedupe/merge/stats/aging/compaction | P0 | Memory is visible, editable, forgettable, quarantinable, exportable, and auditable. |
-| Memory retrieval | Relevant context is retrieved without flooding prompts | Deterministic recall with score, reasons, limit, scope, wing, sensitive gate | Needs better ranking, synonyms, conflict detection, optional semantic retrieval | P0 | Every recalled memory has score, reasons, safety, and policy metadata. |
-| Sensitive memory | Sensitive context should not leak by default | Sensitive memory excluded by default; explicit opt-in exists | Needs stronger policy docs, category labels, and audit review | P0 | Sensitive memory requires visible explicit opt-in and is never silently injected. |
-| Agent planning | Natural-language goal becomes structured plan | `ask` maps goals to simple plan and memory metadata | Needs richer plan schema: risk, command suggestion, required approval, expected artifacts | P0 | Plans are inspectable before action, not hidden chain-of-action. |
-| Safe execution | Agent can act but not dangerously | File organize supports dry-run, approval, rollback | Needs unified execution pipeline and risk policy across all tools | P0 | Every risky action has preview, approval record, operation manifest, and rollback path. |
-| Tool system | Agent can use many practical tools | File organizer, content artifact generators, scheduler records | Needs formal tool registry, tool contracts, input validation, result envelope | P0 | Tools are local-first, auditable, and reversible where possible. |
-| File workflows | Ordinary file chores can be handled safely | Organizer by month with rollback evidence | Needs more workflows: rename, dedupe, classify, archive, extract, convert | P1 | Safer than generic automation because it previews and can roll back. |
-| Content workflows | Reports, PPT outlines, news briefs, storyboards | Basic content packs exist | Needs richer templates, export formats, screenshots/assets, style controls | P1 | Local reusable content packs that can become skills. |
-| Coding workflows | Mature coding agents can inspect repos, edit files, and open PRs | GitHub PR workflow has been used externally; repo-native coding tools are not formalized | Needs repo scan, patch plan, diff preview, test run, PR helper | P0 | Coding actions must be safer and more auditable than normal coding agents. |
-| Skill memory | Repeated tasks become reusable procedures | Skill lifecycle exists: test/validate/promote/deprecate/quarantine | Needs skill ranking, reuse analytics, skill suggestions, compatibility checks | P1 | Skills are not opaque prompts; they have lifecycle, evidence, and promotion state. |
-| Approval system | Human stays in control | Approval ledger exists | Needs policy engine, risk classes, approval UX, batch decisions | P0 | Approval is a first-class product primitive, not an afterthought. |
-| Auditability | User can see what happened and why | Audit logs, operation history, memory audit exist | Needs unified audit view and export | P0 | One place to inspect memory, plan, approval, action, result, and rollback. |
-| Rollback | Risky changes can be undone | Organizer rollback exists | Needs generalized rollback contract per tool | P0 | Reversibility is a core selling point. |
-| Local-first trust | User data is inspectable and portable | Workspace JSON/JSONL approach exists | Needs import/export across all major subsystems | P1 | No hidden database required for core behavior. |
-| Ordinary-user UX | Non-developers can understand and operate it | CLI is usable but technical | Needs TUI/Web UI, task panel, memory panel, approval panel, demo mode | P0 | Product explains itself through previews, policies, and visible state. |
-| Developer UX | Easy to extend | Python package and tests exist | Needs plugin/tool API docs, examples, typing contracts | P2 | Extensions must inherit safety, audit, and approval contracts. |
-| Open-source proof | Maintainers can trust project quality | CI, tests, PR sequence are strong | Needs README, architecture diagram, roadmap, contributing, security policy, release tags | P0 | The repo should look maintained, testable, and serious. |
+| Ordinary-user input | User describes an outcome, not a tool procedure. | `ask` accepts plain text and maps simple intents. | Needs richer intent routing and front-end flow. | P0 | One input box for many apps and workflows. |
+| App abstraction | User does not need to know the app's UI. | Local tools exist; broad app connectors do not. | Gmail/GitHub/Calendar/Drive/Notion-style connectors are missing. | P0 | Forge handles apps behind the scenes. |
+| Action explanation | User understands what will happen before important changes. | Dry-run organizer and approval patterns exist. | Need universal confirmation cards and human wording. | P0 | “Here is what I will do; confirm before I do it.” |
+| Long-term memory | Assistant remembers user/project/workflow context. | Memory Palace exists with recall and filters. | Needs editing, import, dedupe, stats, compaction, UI. | P0 | Visible, editable, forgettable, exportable memory. |
+| Safety that users understand | Safety is not jargon; users know what may change. | Technical safety metadata exists. | Need user-facing “what this may affect” summaries. | P0 | Safe because the user understands and confirms. |
+| Recovery | Mistakes can be corrected where possible. | File organizer rollback exists. | Need generalized recovery and simpler “restore” language. | P0 | “Restore to before I changed it.” |
+| Work records | User can see what was done. | Operation history and memory audit exist. | Need unified ordinary-user history view. | P0 | Clear task record: request, plan, confirmation, result. |
+| Skill reuse | Repeated work gets easier. | Skill lifecycle exists. | Need skill recommendation and user-facing “do it like last time.” | P1 | Lower time cost every time the user repeats work. |
+| Multi-app workflows | Work spans email, GitHub, files, calendar, docs. | Mostly local file/content workflows. | Need connector architecture and staged integrations. | P1 | Start with a few high-quality connectors, not 100 weak ones. |
+| Front end | Non-technical users can operate it. | CLI-first. | Need simple web/TUI/desktop-style task surface. | P0 | Input box + confirmation card + result + history + restore. |
+| Code maintainability | Product can grow without becoming a mess. | Stabilization work has started. | Need full codebase cleanup before more features. | P0 | Clean modules before broad connectors. |
 
 ## Mature-product superiority acceptance bar
 
-Forge cannot claim to exceed mature products until all P0 bars below are met.
+Forge cannot claim product-level superiority until these bars are met.
 
 | Bar | Required evidence |
 |---|---|
-| Memory superiority | User can add, inspect, edit, move, forget, quarantine, restore, import, export, recall, filter, and audit memory. |
-| Planning superiority | `ask` returns a structured plan with memory used, risk, approval requirement, suggested tools, side effects, rollback availability, and next actions. |
-| Execution superiority | At least three practical tools use a shared execution contract with preview, result envelope, operation history, and audit. |
-| Safety superiority | Risk policy is centralized and tests prove high-risk actions cannot silently execute. |
-| Rollback superiority | At least file workflows and one additional tool family support rollback or explicit irreversible-operation warnings. |
-| Skill superiority | Skills are recommended, reused, tested, promoted, quarantined, and measured. |
-| UX superiority | A reviewer can run one demo and understand memory, plan, approval, action, history, and rollback without reading source code. |
-| Open-source superiority | README, architecture, demo, roadmap, contributing, security policy, CI, and release tag are present. |
+| Learning-cost reduction | A user can complete common tasks without learning the underlying app UI. |
+| Time-cost reduction | A repeated workflow becomes faster through memory and skills. |
+| OpenHuman benchmark | Forge has a simple ordinary-user surface and at least a few high-quality app-backed workflows. |
+| OpenClaw benchmark | Forge can execute real tools/workflows with understandable plans and confirmation. |
+| Hermes benchmark | Forge has visible persistent memory and governed skill improvement. |
+| Memory advantage | User can inspect, edit, forget, quarantine, restore, export, recall, and filter memory. |
+| Confirmation advantage | Important actions are explained in ordinary language before execution. |
+| Recovery advantage | At least file workflows and one additional workflow family support recovery or clear irreversible warnings. |
+| Work-record advantage | The user can review what Forge did, what it used, and what changed. |
+| Codebase readiness | Core modules are clean enough to add connectors/UI without creating a monolith. |
 
-## Named strategic direction
+## What Forge already has
 
-Forge should not chase every product feature blindly. It should win through a combined design that mature products rarely expose in one place:
+- CLI task surface with `ask`.
+- Local deterministic planning.
+- Visible Memory Palace.
+- Bounded and explainable recall.
+- Sensitive memory excluded by default.
+- Ask-time memory can be disabled, limited, or filtered.
+- File actions can be previewed and rolled back.
+- Approval ledger and operation history patterns.
+- Skill lifecycle states.
+- Content packs and file organizer demo.
+- CI coverage for core paths.
+
+## What Forge must add next
+
+### P0: Positioning and cleanup
+
+1. Finish product positioning updates.
+2. Finish current memory extraction PR.
+3. Add full codebase cleanup plan.
+4. Avoid new feature work until the codebase is clean enough.
+
+### P0: Ordinary-user flow
+
+1. Define a standard task card:
+   - what you asked,
+   - what I will do,
+   - what this may affect,
+   - what I will not do,
+   - confirm/cancel/edit,
+   - result,
+   - restore/correct if possible.
+2. Make `ask` return this structure before deep app integrations.
+
+### P0: First app-backed workflows
+
+Do not chase 100 integrations first. Start with a few workflows that prove the product thesis:
+
+1. Local files: organize, rename, classify, restore.
+2. GitHub: create repo, write README, open issue/PR, explain GitHub in plain language.
+3. Email/calendar: draft/send with confirmation, summarize important items, schedule with confirmation.
+
+### P1: Front end
+
+Build a simple surface:
 
 ```text
-Agent OS for ordinary users: memory palace + governed tools + approval ledger + rollback history + skill library + local audit trail
+input box -> confirmation card -> progress -> result -> history -> restore/correct
 ```
 
-This means the next development work must not be random. It must move the product toward this acceptance bar.
+### P1: Memory and skill hardening
 
-## What Forge already does better than a generic agent wrapper
+Add memory edit/import/dedupe/stats and skill recommendation/reuse so repeated tasks take less time.
 
-- Memory is not hidden: it is visible in local files.
-- Memory can be forgotten, quarantined, restored, exported, and audited.
-- Recall is bounded and explainable.
-- Sensitive memory is excluded by default.
-- Ask-time memory can be disabled or limited.
-- Ask-time memory can be filtered by scope and wing.
-- File actions can be previewed and rolled back.
-- Skills have lifecycle states instead of being ungoverned prompt snippets.
+## Roadmap
 
-## What Forge must still add before claiming product-level superiority
+### v2.7 Product flow schema
 
-### P0: Required next work
-
-1. **Agent Execution Pipeline**
-   - Add a unified plan schema with risk, approval requirement, suggested command, expected side effects, and rollback availability.
-   - Keep default mode as preview-first.
-   - Connect ask -> plan -> approval -> tool execution -> operation history.
-
-2. **Unified Risk Policy**
-   - Define low/medium/high risk.
-   - Require approval for file movement, deletion, external writes, and irreversible operations.
-   - Return risk metadata in every plan and tool result.
-
-3. **Tool Registry**
-   - Define tool metadata: name, risk, inputs, outputs, reversible, approval requirement.
-   - Let ask suggest registered tools.
-   - Standardize JSON envelopes.
-
-4. **Memory Management Hardening**
-   - Add memory update/edit.
-   - Add memory move between wing/room/closet/drawer.
-   - Add memory import for exported bundles.
-   - Add memory stats and dedupe.
-
-5. **Ordinary-User Demo Surface**
-   - One command should demonstrate memory, ask, preview, approval, execution, rollback, skill reuse, and audit.
-   - Demo output should be deterministic and reviewer-friendly.
-
-6. **Repository Product Packaging**
-   - Rewrite README around the product thesis.
-   - Add architecture diagram.
-   - Add quickstart.
-   - Add demo script.
-   - Add roadmap and examples.
-
-### P1: Strong product work
-
-1. **Generalized Rollback Contract**
-   - Move rollback from file organizer-specific logic toward a common operation pattern.
-   - Record rollback availability in every operation manifest.
-
-2. **Skill Reuse Engine**
-   - Recommend skills during ask.
-   - Track skill usage, success, failure, and promotion evidence.
-   - Use memory recall and skill recall separately.
-
-3. **More Practical Tools**
-   - File rename/dedupe/classify/archive.
-   - Markdown report generator.
-   - PPTX export.
-   - Web form helper.
-   - GitHub issue/PR helper.
-
-### P2: Expansion work
-
-1. **TUI or Web UI**
-   - Memory browser.
-   - Task/plan panel.
-   - Approval queue.
-   - Operation history.
-   - Skill library.
-
-2. **Semantic Retrieval Option**
-   - Optional embedding-backed recall while preserving deterministic fallback.
-   - Keep recall explanations and safety gates.
-
-3. **Enterprise and team features**
-   - Shared workspace policy.
-   - Team memory export/import.
-   - Policy profiles.
-   - External integrations.
-
-## Near-term roadmap
-
-### v2.7 Agent Execution Pipeline
-
-Goal: turn `ask` from a simple planner into a safe execution proposal.
+Goal: make every task understandable to ordinary users.
 
 Deliverables:
 
-- `BrainPlan` includes `risk`, `requires_approval`, `suggested_command`, `side_effects`, `rollback_available`, and `next_actions`.
-- `forge-agent ask ... --json` returns execution-aware metadata.
-- Tests verify that risky actions are preview-first.
-- No automatic execution by default.
+- task card schema,
+- user-facing wording,
+- ask output aligned with the task card,
+- tests for confirmation wording.
 
-### v2.8 Tool Registry
+### v2.8 Codebase cleanup completion
 
-Goal: make tool capabilities explicit and inspectable.
-
-Deliverables:
-
-- `tools.py` registry.
-- Tool metadata schema.
-- `forge-agent tools list/show`.
-- Ask can suggest registered tools.
-
-### v2.9 Unified Risk and Approval Policy
-
-Goal: make safety consistent across tools.
+Goal: make the project ready for connectors and UI.
 
 Deliverables:
 
-- Risk policy module.
-- Risk classes.
-- Approval requirements.
-- Tests for low/medium/high risk behavior.
+- memory extraction complete,
+- CLI handler split,
+- file-by-file codebase audit,
+- no monolithic growth.
 
-### v3.0 Product Packaging
+### v2.9 First connector-quality workflows
 
-Goal: make the repository credible to users, reviewers, and open-source program evaluators.
+Goal: prove “I do not know this software; Forge helps me.”
 
 Deliverables:
 
-- README rewrite.
-- Architecture diagram.
-- Quickstart.
-- Demo walkthrough.
-- Contributing guide.
-- Security policy.
-- Release tag.
+- GitHub workflow prototype,
+- email/calendar safe workflow prototype or simulator,
+- local file workflow improvements,
+- ordinary-user confirmation cards.
+
+### v3.0 Simple front end demo
+
+Goal: make the value visible without reading source code.
+
+Deliverables:
+
+- one input box,
+- confirmation cards,
+- result view,
+- history view,
+- memory view,
+- restore/correct action where supported.
 
 ## Decision rule for future development
 
-A feature should be prioritized only if it improves at least one of these product claims:
+A feature should be prioritized only if it improves at least one of these claims:
 
-1. Forge remembers better because memory is visible and controllable.
-2. Forge acts safer because execution is previewed, approved, audited, and reversible.
-3. Forge improves over time because repeated work becomes governed skills.
-4. Forge is easier to trust because every plan, memory, approval, and operation is inspectable.
-5. Forge is easier to adopt because it has a clear CLI, demo, docs, and local-first behavior.
-6. Forge becomes closer to mature-product superiority across at least one benchmark category.
+1. It reduces the user's learning cost.
+2. It reduces the user's time cost.
+3. It lets the user finish work without knowing the underlying app.
+4. It makes memory useful without becoming hidden or scary.
+5. It explains important actions in ordinary language.
+6. It makes results reviewable or recoverable.
+7. It keeps the codebase clean enough to scale to many apps.
 
-If a feature does not strengthen one of these claims, it should wait.
+If not, it should wait.
