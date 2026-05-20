@@ -6,17 +6,16 @@ from pathlib import Path
 from typing import Sequence
 
 from . import __version__
-from .approvals import ApprovalLedger
-from .cli_common import print_cli_error as _print_cli_error
-from .cli_common import print_subcommand_help as _print_subcommand_help
+from .commands.approvals import add_approvals_parser, handle_approvals
 from .commands.history import add_history_parser, handle_history
 from .commands.make import add_make_parser, handle_make
 from .commands.memory import add_memory_parser, handle_memory
 from .commands.organize import add_organize_parsers, handle_organize, handle_rollback
 from .commands.schedule import add_schedule_parser, handle_schedule
+from .commands.skills import add_skills_parser, handle_skills
+from .commands.tasks import add_tasks_parser, handle_tasks
 from .file_organizer_demo import run_file_organizer_demo
 from .runtime import ForgeRuntime
-from .skills import SkillStore
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -37,31 +36,9 @@ def build_parser() -> argparse.ArgumentParser:
     add_history_parser(sub)
     add_schedule_parser(sub)
     add_make_parser(sub)
-
-    tasks_cmd = sub.add_parser("tasks", help="list local task history")
-    tasks_cmd.add_argument("--limit", type=int, default=20, help="maximum tasks to show")
-    tasks_cmd.add_argument("--json", action="store_true", help="print JSON instead of table text")
-
-    skills_cmd = sub.add_parser("skills", help="list or manage local reusable skills")
-    skills_cmd.add_argument("--json", action="store_true", help="print JSON instead of table text")
-    skills_sub = skills_cmd.add_subparsers(dest="skills_command")
-    skills_list = skills_sub.add_parser("list", help="list skills")
-    skills_list.add_argument("--json", action="store_true", help="print JSON instead of table text")
-    skills_show = skills_sub.add_parser("show", help="show one skill")
-    skills_show.add_argument("skill_id", help="full or prefix skill id")
-    for action_name, status in [("test", "tested"), ("validate", "validated"), ("promote", "promoted"), ("deprecate", "deprecated"), ("quarantine", "quarantined")]:
-        action_parser = skills_sub.add_parser(action_name, help=f"mark a skill as {status}")
-        action_parser.add_argument("skill_id", help="full or prefix skill id")
-        action_parser.add_argument("--reason", default=f"manual {action_name}", help="reason to record in lifecycle log")
-
-    approvals_cmd = sub.add_parser("approvals", help="list or decide approval requests")
-    approvals_sub = approvals_cmd.add_subparsers(dest="approvals_command")
-    approvals_list = approvals_sub.add_parser("list", help="list approval requests")
-    approvals_list.add_argument("--json", action="store_true", help="print JSON instead of table text")
-    approvals_decide = approvals_sub.add_parser("decide", help="approve or deny a request")
-    approvals_decide.add_argument("approval_id", help="approval request id")
-    approvals_decide.add_argument("--decision", required=True, choices=["approved", "denied"], help="approval decision")
-    approvals_decide.add_argument("--json", action="store_true", help="print JSON instead of human text")
+    add_tasks_parser(sub)
+    add_skills_parser(sub)
+    add_approvals_parser(sub)
 
     demo_cmd = sub.add_parser("demo", help="run an ordinary-user demo")
     demo_cmd.add_argument("--kind", default="file-organizer", choices=["file-organizer"], help="demo kind")
@@ -100,15 +77,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "make":
         return handle_make(args, parser)
     if args.command == "tasks":
-        return _handle_tasks(args, runtime)
+        return handle_tasks(args, runtime)
     if args.command == "skills":
-        return _handle_skills(args, parser)
+        return handle_skills(args, parser)
     if args.command == "approvals":
-        return _handle_approvals(args, parser)
+        return handle_approvals(args, parser)
     if args.command == "demo":
         result = run_file_organizer_demo(Path(args.workspace) / "demo-file-organizer")
         if args.json:
-            print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2)); return 0
+            print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+            return 0
         print("Forge Agent ordinary-user demo: file organizer")
         print(f"Goal: {result.goal}\nWorkspace: {result.workspace}\nApproval: {result.approval_id}\nSkill: {result.skill_name} ({result.skill_id})")
         print(f"Created skill: {result.created_skill}\nReuse proven: {result.reuse_proven}\nManifest: {result.manifest_path}")
@@ -122,61 +100,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(json.dumps(status.to_dict(), ensure_ascii=False, indent=2))
         else:
             print(f"Workspace: {status.workspace}\nReady: {status.ready}\nTasks: {status.task_count}\nSkills: {status.skill_count}")
-            for message in status.messages: print(f"- {message}")
+            for message in status.messages:
+                print(f"- {message}")
         return 0 if status.ready else 1
-    parser.print_help(); return 0
-
-
-def _handle_tasks(args: argparse.Namespace, runtime: ForgeRuntime) -> int:
-    tasks = runtime.list_tasks(limit=args.limit)
-    if args.json: print(json.dumps([task.to_dict() for task in tasks], ensure_ascii=False, indent=2)); return 0
-    if not tasks: print("No tasks yet. Run `forge-agent do \"your goal\"` to create one."); return 0
-    for task in tasks:
-        skill = task.evidence.get("skill", {}) if isinstance(task.evidence, dict) else {}; skill_name = skill.get("name", "no skill") if isinstance(skill, dict) else "no skill"
-        print(f"{task.created_at}  {task.status:<10}  {task.task_id}  {task.goal}  [skill: {skill_name}]")
+    parser.print_help()
     return 0
-
-
-def _handle_approvals(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
-    ledger = ApprovalLedger(Path(args.workspace))
-    if args.approvals_command == "list":
-        approvals = ledger.list()
-        if args.json: print(json.dumps([item.to_dict() for item in approvals], ensure_ascii=False, indent=2)); return 0
-        if not approvals: print("No approval requests yet."); return 0
-        for item in approvals: print(f"{item.status:<9} {item.approval_id} {item.risk}: {item.action}")
-        return 0
-    if args.approvals_command == "decide":
-        try:
-            item = ledger.decide(args.approval_id, args.decision)
-        except KeyError as exc:
-            return _print_cli_error(str(exc), error="not_found", json_output=args.json)
-        if args.json:
-            print(json.dumps(item.to_dict(), ensure_ascii=False, indent=2)); return 0
-        print(json.dumps(item.to_dict(), ensure_ascii=False, indent=2)); return 0
-    _print_subcommand_help(parser, "approvals"); return 0
-
-
-def _handle_skills(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
-    store = SkillStore(Path(args.workspace)); store.init(); command = getattr(args, "skills_command", None)
-    wants_json = getattr(args, "json", False)
-    if command in {None, "list"}:
-        skills = store.list()
-        if wants_json: print(json.dumps([skill.to_dict() for skill in skills], ensure_ascii=False, indent=2)); return 0
-        if not skills: print("No skills yet. Run `forge-agent do \"your goal\"` or `forge-agent organize ./folder` and Forge Agent will create one if needed."); return 0
-        for skill in skills: print(f"{skill.status:<11} uses={skill.uses:<3} success={skill.success_count:<3} failure={skill.failure_count:<3} {skill.skill_id}  {skill.name}")
-        return 0
-    if command == "show":
-        skill = store.get(args.skill_id)
-        if skill is None:
-            return _print_cli_error(f"Skill not found: {args.skill_id}", error="not_found", json_output=wants_json)
-        print(json.dumps(skill.to_dict(), ensure_ascii=False, indent=2)); return 0
-    status_map = {"test":"tested", "validate":"validated", "promote":"promoted", "deprecate":"deprecated", "quarantine":"quarantined"}
-    if command in status_map:
-        try: skill = store.set_status(args.skill_id, status_map[command], reason=args.reason)
-        except KeyError as exc:
-            return _print_cli_error(str(exc), error="not_found", json_output=wants_json)
-        print(json.dumps(skill.to_dict(), ensure_ascii=False, indent=2)); return 0
-    _print_subcommand_help(parser, "skills"); return 0
 
 
 def cli_entrypoint() -> int:
