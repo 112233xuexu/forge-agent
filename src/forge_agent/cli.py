@@ -76,14 +76,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
             return 0
         print("Forge Agent ordinary-user demo: file organizer")
-        print(f"Goal: {result.goal}")
-        print(f"Workspace: {result.workspace}")
-        print(f"Approval: {result.approval_id}")
-        print(f"Skill: {result.skill_name} ({result.skill_id})")
-        print(f"Created skill: {result.created_skill}")
-        print(f"Reuse proven: {result.reuse_proven}")
-        print(f"Manifest: {result.manifest_path}")
-        print(f"Moved files: {len(result.moved_files)}")
+        print(f"Goal: {result.goal}\nWorkspace: {result.workspace}\nApproval: {result.approval_id}\nSkill: {result.skill_name} ({result.skill_id})")
+        print(f"Created skill: {result.created_skill}\nReuse proven: {result.reuse_proven}\nManifest: {result.manifest_path}")
+        print("Moved files:")
+        for item in result.moved_files:
+            print(f"- {item['source']} -> {item['destination']}")
         return 0
     parser.print_help()
     return 0
