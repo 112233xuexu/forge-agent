@@ -1,8 +1,8 @@
 # Forge Agent Codebase Inventory
 
-This is the first file-by-file cleanup inventory for Forge Agent.
+This is the file-by-file cleanup inventory for Forge Agent.
 
-The purpose is to stop adding features on top of unclear code. Forge is being positioned as an AI butler for ordinary users. That means the backend may eventually connect many apps, but the codebase must remain understandable, testable, and easy to extend.
+Forge is being positioned as an AI butler for ordinary users. The backend may eventually connect many apps, but the codebase must remain understandable, testable, and easy to extend.
 
 Product direction to protect:
 
@@ -12,9 +12,9 @@ ordinary user request -> clear plan -> confirmation when important -> app/tool e
 
 ## Inventory status
 
-This is the initial inventory pass. It records the current responsibility, target responsibility, action, and priority for known source and test files.
+The first cleanup wave is now mostly complete for the CLI layer.
 
-A later cleanup PR should expand this into a stricter per-file checklist with line-level cleanup notes where needed.
+The original monolithic `cli.py` has been reduced into a thin CLI shell. Command parsing and command handling now live under `src/forge_agent/commands/`, with `commands/registry.py` owning command registration and routing.
 
 ## Source files
 
@@ -26,10 +26,20 @@ A later cleanup PR should expand this into a stricter per-file checklist with li
 | `src/forge_agent/ask_service.py` | Build ask plan and attach memory recall metadata. | Own ask orchestration service. | Keep; later attach ordinary-user task-card schema here, not in entrypoint. | P0 | `test_entrypoint_workspace.py`. |
 | `src/forge_agent/ask_presenter.py` | Render ask output and ask errors. | Own ask presentation. | Keep; later improve user-facing wording. | P1 | `test_entrypoint_errors.py`. |
 | `src/forge_agent/brain.py` | Deterministic planner and `BrainPlan`. | Planner model and local planning rules. | Keep; later split rules if planner grows. | P1 | `test_brain_adapter.py`. |
-| `src/forge_agent/cli.py` | Builds most command parsers and handles many commands; memory command has been extracted. | Compose command parsers and dispatch only. | Continue splitting into `commands/*` modules. | P0 | CLI tests. |
+| `src/forge_agent/cli.py` | Thin CLI shell: build parser, parse args, create runtime, dispatch through registry. | Stay thin; no command business logic. | Keep. | P0 | CLI tests. |
 | `src/forge_agent/cli_common.py` | Shared CLI JSON success/error/help helpers. | Common CLI presentation helpers. | Keep; avoid growing into business logic. | P1 | CLI tests. |
 | `src/forge_agent/commands/__init__.py` | Commands package marker. | Commands package marker. | Keep. | P2 | import smoke via CI. |
+| `src/forge_agent/commands/registry.py` | Register all CLI commands and route parsed args to handlers. | Command composition and routing only. | Keep; add direct tests if command surface grows. | P0 | CLI tests. |
+| `src/forge_agent/commands/core.py` | `init`, `do`, and `doctor` command parser/handlers. | Own core CLI only. | Keep. | P0 | runtime/CLI tests. |
+| `src/forge_agent/commands/demo.py` | Demo command parser/handler. | Own demo CLI only. | Keep; preserve demo output. | P1 | demo CI smoke. |
 | `src/forge_agent/commands/memory.py` | Memory command parser and handler. | Own memory CLI only. | Keep; do not add MemoryStore internals here. | P0 | `test_cli_memory.py`. |
+| `src/forge_agent/commands/organize.py` | Organize and organize-rollback command parsers/handlers. | Own file organizer CLI only. | Keep; do not add FileOrganizer internals here. | P0 | organizer, rollback, CLI JSON tests. |
+| `src/forge_agent/commands/history.py` | History command parser/handler. | Own history CLI only. | Keep. | P1 | history/organizer tests. |
+| `src/forge_agent/commands/schedule.py` | Schedule command parser/handler. | Own schedule CLI only. | Keep simple until confirmation model is stronger. | P2 | schedule smoke tests. |
+| `src/forge_agent/commands/make.py` | Content-pack command parser/handler. | Own make CLI only. | Keep. | P2 | `test_product_packs.py`. |
+| `src/forge_agent/commands/tasks.py` | Tasks command parser/handler. | Own task-list CLI only. | Keep. | P1 | runtime/task tests. |
+| `src/forge_agent/commands/approvals.py` | Approvals command parser/handler. | Own approvals CLI only. | Keep; later translate wording to ordinary-user language. | P1 | approval CLI/error tests. |
+| `src/forge_agent/commands/skills.py` | Skills command parser/handler. | Own skills CLI only. | Keep; later align with user-facing “do it like last time.” | P1 | `test_skills_lifecycle.py`. |
 | `src/forge_agent/memory.py` | Public `MemoryStore` plus remaining persistence/governance/search/export/doctor logic. | Public memory service/compatibility surface. | Keep API stable; continue extracting internals later. | P0 | `test_memory_store.py`, `test_cli_memory.py`. |
 | `src/forge_agent/memory_models.py` | Memory dataclasses and constants. | Memory models only. | Keep. | P1 | memory tests. |
 | `src/forge_agent/memory_audit.py` | Memory audit append/read helpers. | Memory audit helper module. | Keep. | P1 | memory tests. |
@@ -41,51 +51,56 @@ A later cleanup PR should expand this into a stricter per-file checklist with li
 | `src/forge_agent/skills.py` | Skill store and lifecycle. | Skill memory/lifecycle for “do it like last time.” | Keep; later split persistence vs lifecycle vs recommendation. | P1 | `test_skills_lifecycle.py`. |
 | `src/forge_agent/scheduler.py` | Schedule record store. | Future reminder/automation records. | Keep simple; do not deepen before confirmation model. | P2 | schedule smoke tests. |
 | `src/forge_agent/content_packs.py` | Local PPT/report/news/storyboard templates. | User-facing content workflows. | Keep; later move toward app-backed document generation. | P2 | `test_product_packs.py`. |
-| `src/forge_agent/runtime.py` | Runtime/task operations and public `ForgeRuntime`. | Local runtime service. | Audit after CLI split; avoid duplicating ask/tool logic. | P1 | `test_public_runtime.py`. |
+| `src/forge_agent/runtime.py` | Runtime/task operations and public `ForgeRuntime`. | Local runtime service. | Audit after task-card schema. | P1 | `test_public_runtime.py`. |
 
-## Immediate source cleanup decisions
+## Current split status
 
-### Keep stable now
-
-- `entrypoint.py`
-- `ask_options.py`
-- `ask_service.py`
-- `ask_presenter.py`
-- `memory_models.py`
-- `memory_audit.py`
-- `memory_recall.py`
-- `commands/memory.py`
-- `cli_common.py`
-
-These were created by stabilization work and should not be reworked again immediately unless tests reveal an issue.
-
-### Current split status
-
-`src/forge_agent/cli.py` is the major cleanup target.
+The planned CLI split is complete enough for the next product layer.
 
 Completed:
 
 ```text
 src/forge_agent/commands/__init__.py
+src/forge_agent/commands/registry.py
+src/forge_agent/commands/core.py
+src/forge_agent/commands/demo.py
 src/forge_agent/commands/memory.py
-```
-
-Remaining proposed split:
-
-```text
 src/forge_agent/commands/organize.py
-src/forge_agent/commands/skills.py
-src/forge_agent/commands/approvals.py
 src/forge_agent/commands/history.py
 src/forge_agent/commands/schedule.py
 src/forge_agent/commands/make.py
+src/forge_agent/commands/tasks.py
+src/forge_agent/commands/approvals.py
+src/forge_agent/commands/skills.py
 ```
 
-Goal:
+`cli.py` should remain a shell:
 
 ```text
-cli.py composes commands; command modules own handlers.
+build parser -> parse args -> create runtime -> route command
 ```
+
+No new command-specific business logic should be added directly to `cli.py`.
+
+## Next product cleanup target
+
+### Ordinary-user task-card schema
+
+Now that the CLI is less monolithic, the next planned product layer is a standard task card schema.
+
+Target user-facing flow:
+
+```text
+What you asked
+What I will do
+What this may affect
+What I will not do
+Confirm / cancel / edit
+Result
+Restore / correct when possible
+```
+
+This should start as a small model/schema module and tests before any broad UI or connector work.
 
 ### Later memory split target
 
@@ -101,7 +116,7 @@ memory_export.py
 memory_status.py
 ```
 
-Do this only after CLI is split and tests are stable.
+Do this after task-card schema starts because task cards will clarify how memory should be presented to ordinary users.
 
 ## Test files
 
@@ -117,7 +132,7 @@ Do this only after CLI is split and tests are stable.
 | `tests/test_cli_approvals_json_errors.py` | Approval CLI JSON errors. | Keep. | P1 |
 | `tests/test_cli_error_envelope.py` | CLI error envelope behavior. | Keep. | P1 |
 | `tests/test_memory_store.py` | MemoryStore behavior. | Keep; expand if memory internals change. | P0 |
-| `tests/test_cli_memory.py` | Memory CLI behavior. | Keep; critical before and after CLI split. | P0 |
+| `tests/test_cli_memory.py` | Memory CLI behavior. | Keep. | P0 |
 | `tests/test_ask_options.py` | Ask options direct parsing behavior. | Keep. | P1 |
 | `tests/test_memory_recall.py` | Memory recall direct scoring/filtering behavior. | Keep. | P1 |
 | `tests/test_skills_lifecycle.py` | Skill lifecycle. | Keep; product pillar for repeated workflows. | P1 |
@@ -129,11 +144,9 @@ Do this only after CLI is split and tests are stable.
 
 ## Test coverage gaps
 
-Add direct tests before changing these internals:
-
 | Gap | Why it matters | Suggested file |
 |---|---|---|
-| CLI command module tests | Needed before/after splitting `cli.py`. | Existing CLI tests plus focused command tests. |
+| CLI registry direct tests | Registry now owns command composition/routing. | `tests/test_cli_registry.py` |
 | Ordinary-user task-card schema | Needed before UI/app workflows. | `tests/test_task_card.py` |
 
 ## User-facing language audit
@@ -156,36 +169,25 @@ Current CLI output still uses many developer-facing words. That is acceptable fo
 
 Done.
 
-Deliverable:
-
-- `docs/CODEBASE_INVENTORY.md`.
-
 ### PR 2: Direct tests for extracted modules
 
 Done.
 
-Added behavior-preserving tests for:
-
-- `ask_options.py`,
-- `memory_recall.py`.
-
 ### PR 3: CLI command split, phase 1
 
-In progress.
-
-Extract memory command parser/handler first.
-
-Reason:
-
-Memory has strong tests and is a good first command extraction.
+Done.
 
 ### PR 4: CLI command split, phase 2
 
-Extract organizer/history/approvals/skills command handlers.
+Done.
 
-### PR 5: Ordinary-user task-card schema
+### PR 5: CLI command registry
 
-Only after CLI is less monolithic.
+Done.
+
+### PR 6: Ordinary-user task-card schema
+
+Next.
 
 ## Definition of done for this cleanup stage
 
