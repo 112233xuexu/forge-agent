@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .ask_options import AskOptions
+from .ask_task_card import build_task_card_for_plan
 from .brain import BrainAdapter, BrainPlan
 from .memory import MemoryStore
 
@@ -18,6 +19,7 @@ def build_ask_plan(goal: str, *, workspace: str, options: AskOptions) -> BrainPl
         scopes=options.memory_scopes,
         wings=options.memory_wings,
     )
+    plan.metadata["task_card"] = build_task_card_for_plan(plan).to_dict()
     return plan
 
 
