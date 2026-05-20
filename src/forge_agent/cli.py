@@ -9,11 +9,11 @@ from . import __version__
 from .approvals import ApprovalLedger
 from .cli_common import print_cli_error as _print_cli_error
 from .cli_common import print_subcommand_help as _print_subcommand_help
+from .commands.history import add_history_parser, handle_history
 from .commands.memory import add_memory_parser, handle_memory
 from .commands.organize import add_organize_parsers, handle_organize, handle_rollback
 from .content_packs import ContentPack
 from .file_organizer_demo import run_file_organizer_demo
-from .history import OperationHistory
 from .runtime import ForgeRuntime
 from .scheduler import ScheduleStore
 from .skills import SkillStore
@@ -34,15 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     add_organize_parsers(sub)
     add_memory_parser(sub)
-
-    history_cmd = sub.add_parser("history", help="show local operation history")
-    history_sub = history_cmd.add_subparsers(dest="history_command")
-    history_list = history_sub.add_parser("list", help="list operations")
-    history_list.add_argument("--limit", type=int, default=20)
-    history_list.add_argument("--json", action="store_true")
-    history_show = history_sub.add_parser("show", help="show one operation manifest")
-    history_show.add_argument("operation_id")
-    history_show.add_argument("--json", action="store_true")
+    add_history_parser(sub)
 
     schedule_cmd = sub.add_parser("schedule", help="create or manage scheduled automation records")
     schedule_sub = schedule_cmd.add_subparsers(dest="schedule_command")
@@ -120,7 +112,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "memory":
         return handle_memory(args, parser)
     if args.command == "history":
-        return _handle_history(args, parser)
+        return handle_history(args, parser)
     if args.command == "schedule":
         return _handle_schedule(args, parser)
     if args.command == "make":
@@ -151,23 +143,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             for message in status.messages: print(f"- {message}")
         return 0 if status.ready else 1
     parser.print_help(); return 0
-
-
-def _handle_history(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
-    history = OperationHistory(Path(args.workspace))
-    if args.history_command in {None, "list"}:
-        items = history.list(limit=getattr(args, "limit", 20))
-        if getattr(args, "json", False):
-            print(json.dumps([item.to_dict() for item in items], ensure_ascii=False, indent=2)); return 0
-        if not items: print("No operations yet."); return 0
-        for item in items: print(f"{item.created_at} {item.status:<11} {item.kind:<10} {item.operation_id} {item.summary}")
-        return 0
-    if args.history_command == "show":
-        try: data = history.show(args.operation_id)
-        except FileNotFoundError as exc:
-            return _print_cli_error(str(exc), error="file_not_found", json_output=args.json)
-        print(json.dumps(data, ensure_ascii=False, indent=2)); return 0
-    _print_subcommand_help(parser, "history"); return 0
 
 
 def _handle_schedule(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
