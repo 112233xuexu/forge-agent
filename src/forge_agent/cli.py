@@ -10,10 +10,10 @@ from .approvals import ApprovalLedger
 from .cli_common import print_cli_error as _print_cli_error
 from .cli_common import print_subcommand_help as _print_subcommand_help
 from .commands.history import add_history_parser, handle_history
+from .commands.make import add_make_parser, handle_make
 from .commands.memory import add_memory_parser, handle_memory
 from .commands.organize import add_organize_parsers, handle_organize, handle_rollback
 from .commands.schedule import add_schedule_parser, handle_schedule
-from .content_packs import ContentPack
 from .file_organizer_demo import run_file_organizer_demo
 from .runtime import ForgeRuntime
 from .skills import SkillStore
@@ -36,13 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_memory_parser(sub)
     add_history_parser(sub)
     add_schedule_parser(sub)
-
-    make_cmd = sub.add_parser("make", help="generate local content artifacts")
-    make_sub = make_cmd.add_subparsers(dest="make_command")
-    for kind in ["ppt", "report", "news", "storyboard"]:
-        item = make_sub.add_parser(kind, help=f"create a {kind} artifact")
-        item.add_argument("topic", nargs="+", help="artifact topic")
-        item.add_argument("--json", action="store_true")
+    add_make_parser(sub)
 
     tasks_cmd = sub.add_parser("tasks", help="list local task history")
     tasks_cmd.add_argument("--limit", type=int, default=20, help="maximum tasks to show")
@@ -104,7 +98,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "schedule":
         return handle_schedule(args, parser)
     if args.command == "make":
-        return _handle_make(args, parser)
+        return handle_make(args, parser)
     if args.command == "tasks":
         return _handle_tasks(args, runtime)
     if args.command == "skills":
@@ -131,18 +125,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             for message in status.messages: print(f"- {message}")
         return 0 if status.ready else 1
     parser.print_help(); return 0
-
-
-def _handle_make(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
-    pack = ContentPack(Path(args.workspace)); topic = " ".join(getattr(args, "topic", []) or [])
-    if args.make_command == "ppt": artifact = pack.make_ppt_outline(topic)
-    elif args.make_command == "report": artifact = pack.make_report(topic)
-    elif args.make_command == "news": artifact = pack.make_news_brief(topic)
-    elif args.make_command == "storyboard": artifact = pack.make_storyboard(topic)
-    else: _print_subcommand_help(parser, "make"); return 0
-    if args.json: print(json.dumps(artifact.to_dict(), ensure_ascii=False, indent=2))
-    else: print(f"Created {artifact.kind}: {artifact.title}\nPath: {artifact.path}")
-    return 0
 
 
 def _handle_tasks(args: argparse.Namespace, runtime: ForgeRuntime) -> int:
