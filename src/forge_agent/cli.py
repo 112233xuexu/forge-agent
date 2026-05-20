@@ -7,6 +7,7 @@ from typing import Sequence
 
 from . import __version__
 from .commands.approvals import add_approvals_parser, handle_approvals
+from .commands.core import add_core_parsers, handle_do, handle_doctor, handle_init
 from .commands.history import add_history_parser, handle_history
 from .commands.make import add_make_parser, handle_make
 from .commands.memory import add_memory_parser, handle_memory
@@ -24,13 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--workspace", default=".forge-agent", help="runtime workspace")
     sub = parser.add_subparsers(dest="command")
 
-    init_cmd = sub.add_parser("init", help="create or repair a local Forge workspace")
-    init_cmd.add_argument("--profile", default="local", help="workspace profile name")
-    init_cmd.add_argument("--force", action="store_true", help="rewrite workspace config")
-
-    do_cmd = sub.add_parser("do", help="submit a goal to the local runtime")
-    do_cmd.add_argument("goal", nargs="+", help="goal text")
-
+    add_core_parsers(sub)
     add_organize_parsers(sub)
     add_memory_parser(sub)
     add_history_parser(sub)
@@ -43,9 +38,6 @@ def build_parser() -> argparse.ArgumentParser:
     demo_cmd = sub.add_parser("demo", help="run an ordinary-user demo")
     demo_cmd.add_argument("--kind", default="file-organizer", choices=["file-organizer"], help="demo kind")
     demo_cmd.add_argument("--json", action="store_true", help="print JSON only")
-
-    doctor_cmd = sub.add_parser("doctor", help="print workspace health")
-    doctor_cmd.add_argument("--json", action="store_true", help="print JSON instead of human text")
     return parser
 
 
@@ -55,15 +47,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     runtime = ForgeRuntime(Path(args.workspace))
 
     if args.command == "init":
-        status = runtime.init_workspace(profile=args.profile, force=args.force)
-        print(f"Initialized Forge workspace: {status.workspace}")
-        for message in status.messages:
-            print(f"- {message}")
-        return 0
+        return handle_init(args, runtime)
     if args.command == "do":
-        result = runtime.do(" ".join(args.goal))
-        print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
-        return 0
+        return handle_do(args, runtime)
+    if args.command == "doctor":
+        return handle_doctor(args, runtime)
     if args.command == "organize":
         return handle_organize(args)
     if args.command == "organize-rollback":
@@ -94,15 +82,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         for item in result.moved_files:
             print(f"- {item['source']} -> {item['destination']}")
         return 0
-    if args.command == "doctor":
-        status = runtime.doctor()
-        if args.json:
-            print(json.dumps(status.to_dict(), ensure_ascii=False, indent=2))
-        else:
-            print(f"Workspace: {status.workspace}\nReady: {status.ready}\nTasks: {status.task_count}\nSkills: {status.skill_count}")
-            for message in status.messages:
-                print(f"- {message}")
-        return 0 if status.ready else 1
     parser.print_help()
     return 0
 
