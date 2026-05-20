@@ -12,10 +12,10 @@ from .cli_common import print_subcommand_help as _print_subcommand_help
 from .commands.history import add_history_parser, handle_history
 from .commands.memory import add_memory_parser, handle_memory
 from .commands.organize import add_organize_parsers, handle_organize, handle_rollback
+from .commands.schedule import add_schedule_parser, handle_schedule
 from .content_packs import ContentPack
 from .file_organizer_demo import run_file_organizer_demo
 from .runtime import ForgeRuntime
-from .scheduler import ScheduleStore
 from .skills import SkillStore
 
 
@@ -35,19 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_organize_parsers(sub)
     add_memory_parser(sub)
     add_history_parser(sub)
-
-    schedule_cmd = sub.add_parser("schedule", help="create or manage scheduled automation records")
-    schedule_sub = schedule_cmd.add_subparsers(dest="schedule_command")
-    schedule_add = schedule_sub.add_parser("add", help="record a scheduled command")
-    schedule_add.add_argument("schedule", help="natural-language schedule, e.g. every day 9am")
-    schedule_add.add_argument("command", nargs="+", help="command to run later")
-    schedule_add.add_argument("--json", action="store_true")
-    schedule_list = schedule_sub.add_parser("list", help="list scheduled commands")
-    schedule_list.add_argument("--json", action="store_true")
-    for action_name, status in [("pause", "paused"), ("resume", "active")]:
-        action = schedule_sub.add_parser(action_name, help=f"mark schedule as {status}")
-        action.add_argument("task_id")
-        action.add_argument("--json", action="store_true")
+    add_schedule_parser(sub)
 
     make_cmd = sub.add_parser("make", help="generate local content artifacts")
     make_sub = make_cmd.add_subparsers(dest="make_command")
@@ -114,7 +102,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "history":
         return handle_history(args, parser)
     if args.command == "schedule":
-        return _handle_schedule(args, parser)
+        return handle_schedule(args, parser)
     if args.command == "make":
         return _handle_make(args, parser)
     if args.command == "tasks":
@@ -143,29 +131,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             for message in status.messages: print(f"- {message}")
         return 0 if status.ready else 1
     parser.print_help(); return 0
-
-
-def _handle_schedule(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
-    store = ScheduleStore(Path(args.workspace)); store.init()
-    if args.schedule_command == "add":
-        task = store.add(" ".join(args.command), args.schedule)
-        if args.json: print(json.dumps(task.to_dict(), ensure_ascii=False, indent=2))
-        else: print(f"Scheduled: {task.task_id} [{task.status}] {task.schedule} -> {task.command}")
-        return 0
-    if args.schedule_command in {None, "list"}:
-        tasks = store.list()
-        if getattr(args, "json", False): print(json.dumps([task.to_dict() for task in tasks], ensure_ascii=False, indent=2)); return 0
-        if not tasks: print("No schedules yet."); return 0
-        for task in tasks: print(f"{task.status:<7} {task.task_id} {task.schedule} -> {task.command}")
-        return 0
-    if args.schedule_command in {"pause", "resume"}:
-        try: task = store.set_status(args.task_id, "paused" if args.schedule_command == "pause" else "active")
-        except KeyError as exc:
-            return _print_cli_error(str(exc), error="not_found", json_output=args.json)
-        if args.json: print(json.dumps(task.to_dict(), ensure_ascii=False, indent=2))
-        else: print(f"{task.status}: {task.task_id} {task.schedule} -> {task.command}")
-        return 0
-    _print_subcommand_help(parser, "schedule"); return 0
 
 
 def _handle_make(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
