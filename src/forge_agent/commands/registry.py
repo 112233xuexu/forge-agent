@@ -28,7 +28,7 @@ def add_all_command_parsers(subparsers):
     add_demo_parser(subparsers)
 
 
-def dispatch_command(args: argparse.Namespace, parser: argparse.ArgumentParser, runtime: ForgeRuntime) -> int:
+def route_command(args: argparse.Namespace, parser: argparse.ArgumentParser, runtime: ForgeRuntime) -> int:
     command = getattr(args, "command", None)
     if command == "init":
         return handle_init(args, runtime)
