@@ -1,44 +1,69 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, Optional
+
+_HISTORY_MARKERS = (
+    'before',
+    'previous',
+    'previously',
+    'used to',
+    'old value',
+    'history',
+    'historical',
+    'earlier',
+    'formerly',
+    'what was',
+)
 
 
-def canonical_guard_text(text: str | None) -> str:
-    value = str(text or "").strip().lower()
-    value = re.sub(r"\s+", " ", value)
-    return value
+def canonical_guard_text(value: Any) -> str:
+    text = str(value or '').strip().lower()
+    return re.sub(r'\s+', ' ', text)
 
 
-def guard_value_in_text(value: str, text: str) -> bool:
-    expected = canonical_guard_text(value)
-    actual = canonical_guard_text(text)
-    return bool(expected and expected in actual)
+def guard_value_in_text(content: Any, value: Any) -> bool:
+    haystack = canonical_guard_text(content)
+    needle = canonical_guard_text(value)
+    if not haystack or not needle:
+        return False
+    if len(needle) <= 2:
+        return False
+    if ' ' in needle or any(ch in needle for ch in '=:/-_'):
+        return needle in haystack
+    return re.search(r'(?<!\w)' + re.escape(needle) + r'(?!\w)', haystack) is not None
 
 
-def parse_preference_content(content: str) -> dict[str, str]:
-    text = str(content or "")
-    lowered = canonical_guard_text(text)
-    result: dict[str, str] = {"raw": text, "canonical": lowered}
-    for marker in ["prefer", "preference", "like", "use", "default"]:
-        if marker in lowered:
-            result["kind"] = marker
-            break
-    if ":" in text:
-        key, value = text.split(":", 1)
-        result["key"] = canonical_guard_text(key)
-        result["value"] = value.strip()
-    return result
+def parse_preference_content(content: str) -> tuple[Optional[str], Optional[str]]:
+    raw = str(content or '')
+    if '=' not in raw:
+        return None, None
+    key, value = raw.split('=', 1)
+    key = key.strip() or None
+    value = value.strip() or None
+    return key, value
 
 
 def query_requests_history(query: str) -> bool:
-    text = canonical_guard_text(query)
-    return any(token in text for token in ["history", "previous", "before", "last time", "remember", "过去", "之前", "上次", "记得"])
+    lowered = canonical_guard_text(query)
+    if not lowered:
+        return False
+    return any(marker in lowered for marker in _HISTORY_MARKERS)
 
 
-def summarize_guard_rules(rules: list[dict[str, Any]]) -> dict[str, Any]:
-    return {
-        "count": len(rules),
-        "active": sum(1 for rule in rules if rule.get("active", True)),
-        "keys": sorted(str(rule.get("key", "")) for rule in rules if rule.get("key")),
-    }
+def summarize_guard_rules(rules_by_scope: dict[str, dict[str, dict[str, Any]]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for scope, rules in rules_by_scope.items():
+        for key, rule in rules.items():
+            stale_values = sorted({canonical_guard_text(item): item for item in rule.get('stale_values', []) if str(item or '').strip()}.values())
+            canonical_content = str(rule.get('canonical_content') or '').strip()
+            rows.append({
+                'scope': scope,
+                'key': key,
+                'canonical_content': canonical_content,
+                'stale_values': stale_values,
+                'stale_count': len(stale_values),
+                'sources': sorted(set(rule.get('sources', []))),
+            })
+    rows.sort(key=lambda item: (0 if str(item['scope']).startswith('session:') else 1, item['key']))
+    return rows
