@@ -18,6 +18,14 @@ CLI / ask presenter
   -> context builder / palace graph
   -> task card preview
 
+CLI / do command
+  -> legacy task ledger by default
+  -> UserGoalRunner with --preview / --explain / --execute
+  -> SkillLibrary match
+  -> SimplePlanner fallback
+  -> GovernanceEngine
+  -> WorkflowExecutor when execution is requested
+
 CompatRuntime
   -> gateway adapters
   -> state store
@@ -36,6 +44,7 @@ Local tools
 The existing CLI remains the public user path:
 
 - `forge-agent ask`
+- `forge-agent do`
 - `forge-agent organize`
 - `forge-agent organize-rollback`
 - `forge-agent memory ...`
@@ -45,6 +54,25 @@ The existing CLI remains the public user path:
 - `forge-agent make ...`
 
 These paths should remain backwards compatible unless a release note says otherwise.
+
+## Ordinary-user goal runner
+
+`UserGoalRunner` is the first explicit zero-config autopilot surface. It is intentionally small and tested:
+
+1. Try to match a reusable skill.
+2. If no skill matches, fall back to `SimplePlanner`.
+3. Ask governance whether the plan can proceed.
+4. In preview mode, explain what would happen.
+5. In explain mode, return plain-language plan text.
+6. In execute mode, run only local registered tools through `WorkflowExecutor`.
+
+The CLI keeps legacy `forge-agent do "goal"` behavior as a task ledger record. The new user-goal path is opt-in through:
+
+```bash
+forge-agent do --preview "Summarize these notes: ship update"
+forge-agent do --explain "Rewrite 'Need approval' in a warmer tone"
+forge-agent do --execute "Summarize these notes: ship update"
+```
 
 ## RC10 compatibility layers
 
@@ -60,7 +88,7 @@ PR #59 adds the larger RC10 runtime in tested slices:
 - desktop/client and HTTP payload adapters;
 - compatibility benchmark harness.
 
-Most RC10 layers are additive. The first real replacement wiring is in `ask_service.py`, where existing `MemoryStore.recall()` results are promoted into RC10 memory/context metadata while preserving the old `memory_used` output shape.
+Most RC10 layers are additive. The first real replacement wiring is in `ask_service.py`, where existing `MemoryStore.recall()` results are promoted into RC10 memory/context metadata while preserving the old `memory_used` output shape. The second user-facing wiring is `do --preview/--explain/--execute`, which starts the zero-config user goal path without breaking existing task records.
 
 ## What is intentionally not production yet
 
