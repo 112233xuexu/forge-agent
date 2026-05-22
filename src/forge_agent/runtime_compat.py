@@ -8,6 +8,8 @@ from .gateway import GatewayReply, GatewayRouter, InboundMessage, LocalChannel, 
 from .planner import SimplePlanner
 from .session_state import StateStore
 from .tool_registry import ToolRegistry
+from .workflow import WorkflowBundle
+from .workflow_executor import WorkflowExecutor
 
 
 @dataclass(slots=True)
@@ -26,13 +28,15 @@ class CompatRuntime:
 
     This facade intentionally does not replace the public ForgeRuntime in
     runtime.py. It gives follow-up migration PRs a safe place to test gateway,
-    state, planner, and registry wiring before default command behavior changes.
+    state, planner, registry, and optional workflow execution before default
+    command behavior changes.
     """
 
     def __init__(self, state: StateStore | str | Path, tools: ToolRegistry | None = None) -> None:
         self.state = state if isinstance(state, StateStore) else StateStore(state)
         self.tools = tools or ToolRegistry()
         self.planner = SimplePlanner(self.tools)
+        self.executor = WorkflowExecutor(self.tools)
         self.router = GatewayRouter(self.state, planner=self.planner)
 
     def get_or_create_session(self, *, channel: str = "local", user_id: str = "default-user"):
@@ -46,10 +50,12 @@ class CompatRuntime:
         channel: str = "local",
         user_id: str = "default-user",
         inputs: dict[str, Any] | None = None,
+        execute: bool = False,
     ) -> RuntimeTurnResult:
         inbound = InboundMessage.new(channel=channel, user_id=user_id, text=text, session_id=session_id)
         _envelope, reply = self.router.route(inbound, inputs=inputs or {})
-        return self._from_reply(reply)
+        result = self._from_reply(reply)
+        return self._maybe_execute(result, inputs=inputs or {}) if execute else result
 
     def run_task(
         self,
@@ -57,25 +63,57 @@ class CompatRuntime:
         text: str,
         *,
         inputs: dict[str, Any] | None = None,
+        execute: bool = False,
     ) -> RuntimeTurnResult:
-        return self.run_turn(session_id, text, inputs=inputs)
+        return self.run_turn(session_id, text, inputs=inputs, execute=execute)
 
-    def run_local(self, text: str, *, user_id: str = "default-user", inputs: dict[str, Any] | None = None) -> RuntimeTurnResult:
+    def run_local(
+        self,
+        text: str,
+        *,
+        user_id: str = "default-user",
+        inputs: dict[str, Any] | None = None,
+        execute: bool = False,
+    ) -> RuntimeTurnResult:
         channel = LocalChannel()
         inbound = channel.build_inbound(user_id=user_id, text=text)
         _envelope, reply = self.router.route(inbound, inputs=inputs or {})
         channel.deliver(reply)
-        return self._from_reply(reply)
+        result = self._from_reply(reply)
+        return self._maybe_execute(result, inputs=inputs or {}) if execute else result
 
-    def run_webhook(self, payload: dict[str, Any], *, default_user_id: str = "default-user", inputs: dict[str, Any] | None = None) -> RuntimeTurnResult:
+    def run_webhook(
+        self,
+        payload: dict[str, Any],
+        *,
+        default_user_id: str = "default-user",
+        inputs: dict[str, Any] | None = None,
+        execute: bool = False,
+    ) -> RuntimeTurnResult:
         channel = WebhookChannel()
         inbound = channel.build_inbound_from_payload(payload, default_user_id=default_user_id)
         _envelope, reply = self.router.route(inbound, inputs=inputs or {})
         channel.deliver(reply)
-        return self._from_reply(reply)
+        result = self._from_reply(reply)
+        return self._maybe_execute(result, inputs=inputs or {}) if execute else result
 
     def close(self) -> None:
         self.state.close()
 
     def _from_reply(self, reply: GatewayReply) -> RuntimeTurnResult:
         return RuntimeTurnResult(session_id=reply.session_id, status=reply.status, text=reply.text, payload=reply.payload)
+
+    def _maybe_execute(self, result: RuntimeTurnResult, *, inputs: dict[str, Any]) -> RuntimeTurnResult:
+        route = dict(result.payload.get("route") or {})
+        plan_payload = route.get("plan")
+        if result.status != "planned" or not isinstance(plan_payload, dict):
+            return result
+        from .models import TaskPlan
+
+        plan = TaskPlan.from_dict(plan_payload)
+        execution = self.executor.execute(WorkflowBundle.from_task_plan(plan, inputs=inputs), inputs=inputs)
+        payload = dict(result.payload)
+        payload["execution"] = execution.to_dict()
+        status = execution.status
+        text = "I completed the planned work." if status == "completed" else result.text
+        return RuntimeTurnResult(session_id=result.session_id, status=status, text=text, payload=payload)
