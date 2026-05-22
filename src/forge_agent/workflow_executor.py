@@ -5,7 +5,7 @@ from typing import Any
 
 from .models import StepAttempt, StepExecution, TaskPlan, TaskRunResult, utc_now
 from .tool_registry import ToolRegistry
-from .workflow import WorkflowBundle, WorkflowNode, inspect_workflow_readiness, order_workflow_nodes, resolve_step_arguments
+from .workflow import WorkflowBundle, WorkflowNode, order_workflow_nodes, resolve_step_arguments
 
 
 @dataclass(slots=True)
@@ -82,20 +82,6 @@ class WorkflowExecutor:
         missing_refs: list[str] = []
 
         for node in order_workflow_nodes(bundle.nodes):
-            readiness = inspect_workflow_readiness(bundle, completed_nodes=list(outputs))
-            if node.node_id not in readiness.ready_nodes and node.node_id not in outputs:
-                deps = readiness.blocked_nodes.get(node.node_id, [])
-                if deps:
-                    return WorkflowExecutionResult(
-                        workflow_id=bundle.workflow_id,
-                        objective=bundle.objective,
-                        status="blocked",
-                        step_results=step_results,
-                        outputs=outputs,
-                        missing_references=deps,
-                        error_summary=f"step {node.node_id} is waiting for {', '.join(deps)}",
-                    )
-
             resolved = resolve_step_arguments(node.args, variables=variables, step_results=_results_by_node_and_name(bundle.nodes, outputs))
             if not resolved.ready:
                 missing_inputs.extend(resolved.missing_inputs)
