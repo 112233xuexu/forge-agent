@@ -1,6 +1,6 @@
-# RC10 memory and state migration
+# RC10 memory, state, and planner migration
 
-This branch moves runnable memory and state compatibility subsystems from the prepared RC10 source archive into the normal repository source tree.
+This branch moves runnable memory, state, and planner compatibility subsystems from the prepared RC10 source archive into the normal repository source tree.
 
 ## Added core memory modules
 
@@ -34,11 +34,19 @@ This branch moves runnable memory and state compatibility subsystems from the pr
   - memory-bundle migration helpers
 - `src/forge_agent/session_state.py` adds a deliberately small `StateStore` subset for sessions, messages, and checkpoints.
 
+## Added planner and tool compatibility base
+
+- `src/forge_agent/contracts.py` adds small Protocol contracts for channel/runtime/store/tool boundaries.
+- `src/forge_agent/tool_registry.py` adds the RC10 callable tool registry subset.
+- `src/forge_agent/normalization.py` adds the text token normalization subset needed by the planner.
+- `src/forge_agent/planner.py` adds the stable simple planner subset for notes, follow-up, translation, and paraphrase tasks.
+- `src/forge_agent/__init__.py` exports the migrated compatibility surfaces.
+
 ## Why this is additive
 
 The current public CLI and runtime already include later ordinary-user task-card work. This migration intentionally does not overwrite those files. The migrated subsystems are introduced as additive modules so follow-up PRs can connect them to `ask`, task planning, workspace state, and user-facing output without regressing the existing command registry.
 
-The full RC10 `session_state.py` is much larger than this subset. It includes skill lifecycle, palace graph, benchmarks, ledger replay, governance, and many persistence tables. Those pieces should continue to migrate as tested slices instead of one bulk replacement.
+The full RC10 runtime/planner/gateway stack is larger than this PR. It includes workflow nodes, skill lifecycle, palace graph, benchmarks, ledger replay, governance, HTTP adapters, and many persistence tables. Those pieces should continue to migrate as tested slices instead of one bulk replacement.
 
 ## Verification
 
@@ -62,8 +70,15 @@ The new `tests/test_rc10_state_compat.py` covers:
 - memory-bundle promotion from legacy container shapes,
 - session/message/checkpoint round trips through the SQLite state subset.
 
+The new `tests/test_planner_registry_compat.py` covers:
+
+- simple follow-up/translation plan construction,
+- translation missing-input detection and quoted text extraction,
+- paraphrase style planning,
+- tool registry metadata and execution.
+
 Run locally with:
 
 ```bash
-python -m pytest tests/test_memory_engine_pipeline.py tests/test_memory_hardening_pipeline.py tests/test_rc10_state_compat.py
+python -m pytest tests/test_memory_engine_pipeline.py tests/test_memory_hardening_pipeline.py tests/test_rc10_state_compat.py tests/test_planner_registry_compat.py
 ```
