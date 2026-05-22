@@ -24,7 +24,9 @@ def build_ask_plan(goal: str, *, workspace: str, options: AskOptions) -> BrainPl
         scopes=options.memory_scopes,
         wings=options.memory_wings,
     )
-    plan.metadata["task_card"] = build_task_card_for_plan(plan).to_dict()
+    task_card = build_task_card_for_plan(plan).to_dict()
+    task_card["memory_used"] = [item["id"] for item in plan.metadata.get("memory_used", []) if isinstance(item, dict) and item.get("id")]
+    plan.metadata["task_card"] = task_card
     return plan
 
 
