@@ -1,6 +1,6 @@
-# RC10 memory, state, and planner migration
+# RC10 memory, state, planner, and gateway migration
 
-This branch moves runnable memory, state, and planner compatibility subsystems from the prepared RC10 source archive into the normal repository source tree.
+This branch moves runnable memory, state, planner, and gateway compatibility subsystems from the prepared RC10 source archive into the normal repository source tree.
 
 ## Added core memory modules
 
@@ -42,6 +42,12 @@ This branch moves runnable memory, state, and planner compatibility subsystems f
 - `src/forge_agent/planner.py` adds the stable simple planner subset for notes, follow-up, translation, and paraphrase tasks.
 - `src/forge_agent/__init__.py` exports the migrated compatibility surfaces.
 
+## Added gateway and runtime compatibility base
+
+- `src/forge_agent/gateway.py` adds the local/webhook channel, session binding, envelope, reply, delivery, and planner routing subset.
+- `src/forge_agent/runtime_compat.py` adds `CompatRuntime`, an isolated facade for state + planner + gateway integration tests.
+- This does not replace the existing public `ForgeRuntime` in `src/forge_agent/runtime.py`.
+
 ## Why this is additive
 
 The current public CLI and runtime already include later ordinary-user task-card work. This migration intentionally does not overwrite those files. The migrated subsystems are introduced as additive modules so follow-up PRs can connect them to `ask`, task planning, workspace state, and user-facing output without regressing the existing command registry.
@@ -77,8 +83,15 @@ The new `tests/test_planner_registry_compat.py` covers:
 - paraphrase style planning,
 - tool registry metadata and execution.
 
+The new `tests/test_gateway_runtime_compat.py` covers:
+
+- gateway session reuse and message recording,
+- webhook payload normalization,
+- compat runtime planned routes,
+- missing-input replies.
+
 Run locally with:
 
 ```bash
-python -m pytest tests/test_memory_engine_pipeline.py tests/test_memory_hardening_pipeline.py tests/test_rc10_state_compat.py tests/test_planner_registry_compat.py
+python -m pytest tests/test_memory_engine_pipeline.py tests/test_memory_hardening_pipeline.py tests/test_rc10_state_compat.py tests/test_planner_registry_compat.py tests/test_gateway_runtime_compat.py
 ```
