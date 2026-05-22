@@ -7,6 +7,12 @@ This branch moves runnable compatibility subsystems from the prepared RC10 sourc
 - `memory_guard.py`, `memory_freshness.py`, `memory_ranking.py`, `memory_resolution.py`, `memory_verdict.py`, and `memory_engine.py` add the core memory pipeline.
 - `memory_continuity.py`, `memory_soak.py`, `memory_recovery.py`, and `memory_quarantine.py` add memory hardening.
 
+## Added palace graph and context builder base
+
+- `palace_graph.py` adds an in-memory context graph with nodes, edges, path normalization, search, shortest paths, and recall-hit path filtering.
+- `context_builder.py` converts recall hits into context packs with focus path, breadcrumbs, related paths, and ranked hits.
+- This does not replace the existing `MemoryStore`; it gives future integration a tested context-path layer.
+
 ## Added state compatibility base
 
 - `models.py` includes RC10-compatible checkpoint/session primitives.
@@ -41,7 +47,7 @@ This branch moves runnable compatibility subsystems from the prepared RC10 sourc
 
 The current public CLI and runtime already include later ordinary-user task-card work. This migration intentionally does not overwrite those files. The migrated subsystems are introduced as additive modules so follow-up PRs can connect them to `ask`, task planning, workspace state, and user-facing output without regressing the existing command registry.
 
-The full RC10 runtime stack is larger than this PR. It includes palace graph, benchmarks, desktop bridge, HTTP adapters, and many persistence tables. Those pieces should continue to migrate as tested slices instead of one bulk replacement.
+The full RC10 runtime stack is larger than this PR. It includes benchmarks, desktop bridge, HTTP adapters, and many persistence tables. Those pieces should continue to migrate as tested slices instead of one bulk replacement.
 
 ## Verification
 
@@ -49,6 +55,8 @@ The test coverage added by this branch includes:
 
 - `tests/test_memory_engine_pipeline.py`
 - `tests/test_memory_hardening_pipeline.py`
+- `tests/test_palace_graph_compat.py`
+- `tests/test_context_builder_compat.py`
 - `tests/test_rc10_state_compat.py`
 - `tests/test_planner_registry_compat.py`
 - `tests/test_gateway_runtime_compat.py`
@@ -62,5 +70,5 @@ The test coverage added by this branch includes:
 Run locally with:
 
 ```bash
-python -m pytest tests/test_memory_engine_pipeline.py tests/test_memory_hardening_pipeline.py tests/test_rc10_state_compat.py tests/test_planner_registry_compat.py tests/test_gateway_runtime_compat.py tests/test_workflow_compat.py tests/test_workflow_executor_compat.py tests/test_runtime_execution_compat.py tests/test_skill_lifecycle_compat.py tests/test_governance_compat.py tests/test_runtime_policy_compat.py
+python -m pytest tests/test_memory_engine_pipeline.py tests/test_memory_hardening_pipeline.py tests/test_palace_graph_compat.py tests/test_context_builder_compat.py tests/test_rc10_state_compat.py tests/test_planner_registry_compat.py tests/test_gateway_runtime_compat.py tests/test_workflow_compat.py tests/test_workflow_executor_compat.py tests/test_runtime_execution_compat.py tests/test_skill_lifecycle_compat.py tests/test_governance_compat.py tests/test_runtime_policy_compat.py
 ```
