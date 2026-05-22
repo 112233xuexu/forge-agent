@@ -3,7 +3,9 @@ from __future__ import annotations
 import argparse
 import json
 
+from forge_agent.benchmark import default_benchmark_tools
 from forge_agent.runtime import ForgeRuntime
+from forge_agent.user_goal import UserGoalRunner
 
 
 def add_core_parsers(subparsers):
@@ -13,6 +15,9 @@ def add_core_parsers(subparsers):
 
     do_cmd = subparsers.add_parser("do", help="submit a goal to the local runtime")
     do_cmd.add_argument("goal", nargs="+", help="goal text")
+    do_cmd.add_argument("--preview", action="store_true", help="preview a zero-config plan instead of only recording the goal")
+    do_cmd.add_argument("--explain", action="store_true", help="explain the plan in ordinary language")
+    do_cmd.add_argument("--execute", action="store_true", help="execute the plan through local registered tools when safe")
 
     doctor_cmd = subparsers.add_parser("doctor", help="print workspace health")
     doctor_cmd.add_argument("--json", action="store_true", help="print JSON instead of human text")
@@ -27,7 +32,13 @@ def handle_init(args: argparse.Namespace, runtime: ForgeRuntime) -> int:
 
 
 def handle_do(args: argparse.Namespace, runtime: ForgeRuntime) -> int:
-    result = runtime.do(" ".join(args.goal))
+    goal = " ".join(args.goal)
+    if args.preview or args.explain or args.execute:
+        mode = "execute" if args.execute else "explain" if args.explain else "preview"
+        result = UserGoalRunner(default_benchmark_tools()).run(goal, mode=mode)
+        print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+        return 0
+    result = runtime.do(goal)
     print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
     return 0
 
