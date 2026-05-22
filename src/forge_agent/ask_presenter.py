@@ -21,6 +21,10 @@ def print_ask_plan(plan: BrainPlan, *, wants_json: bool) -> None:
             print("What I remembered for this task:")
             for memory in memory_used:
                 print(f"- {memory['scope']}/{memory['wing']} ({memory['id']})")
+        focus_path = plan.metadata.get("context_focus_path")
+        if isinstance(focus_path, str) and focus_path:
+            print("")
+            print(f"Context path: {focus_path}")
         return
     print("Forge Agent task preview")
     print(f"You asked: {plan.goal}")
@@ -57,7 +61,7 @@ def _task_card_from_dict(data: dict[str, object]) -> TaskCard:
         boundaries=[str(item) for item in data.get("boundaries", [])],
         buttons=buttons,
         result_summary=data.get("result_summary") if isinstance(data.get("result_summary"), str) else None,
-        record_id=data.get("record_id") if isinstance(data.get("record_id"), str) else None,
+        record_id=data.get("record_id") if isinstance(data.get("record_id", None), str) else None,
         restore_available=bool(data.get("restore_available", False)),
         memory_used=[str(item) for item in data.get("memory_used", [])],
     )

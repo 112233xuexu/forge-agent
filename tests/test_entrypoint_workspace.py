@@ -92,6 +92,7 @@ def test_ask_attaches_bounded_memory_metadata(monkeypatch, capsys, tmp_path):
         "scope_filter": [],
         "wing_filter": [],
         "sensitive_requires_explicit_recall": True,
+        "engine": "rc10-memory-engine",
     }
     assert store.show(public.id).last_used_at is not None
     assert store.show(sensitive.id).last_used_at is None

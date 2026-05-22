@@ -1,0 +1,43 @@
+name: rc10-compat
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  rc10-compat:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e . pytest
+      - name: Compile RC10 compatibility modules and tests
+        run: python -m compileall src tests
+      - name: Run RC10 compatibility tests
+        run: >-
+          python -m pytest -q
+          tests/test_memory_engine_pipeline.py
+          tests/test_memory_hardening_pipeline.py
+          tests/test_palace_graph_compat.py
+          tests/test_context_builder_compat.py
+          tests/test_ask_rc10_context_integration.py
+          tests/test_rc10_state_compat.py
+          tests/test_state_store_extended_compat.py
+          tests/test_planner_registry_compat.py
+          tests/test_gateway_runtime_compat.py
+          tests/test_desktop_adapter_compat.py
+          tests/test_http_adapter_compat.py
+          tests/test_workflow_compat.py
+          tests/test_workflow_executor_compat.py
+          tests/test_runtime_execution_compat.py
+          tests/test_skill_lifecycle_compat.py
+          tests/test_governance_compat.py
+          tests/test_runtime_policy_compat.py
+          tests/test_benchmark_compat.py

@@ -1,6 +1,6 @@
 # Forge Agent Codebase Cleanup Plan
 
-This plan turns the stabilization request into a concrete cleanup process.
+This plan turns the stabilization request into a concrete cleanup process and keeps it aligned with the current repository state.
 
 The project should not keep adding product features on top of unclear code. Before broad app connectors, front-end work, or deeper agent execution are added, the codebase must be reviewed file by file and cleaned in behavior-preserving PRs.
 
@@ -23,8 +23,8 @@ The codebase must support that direction without becoming a tangled backend.
 
 ## Cleanup principles
 
-1. **No new feature during cleanup.**
-   Refactor only. Preserve behavior.
+1. **No blind feature expansion during cleanup.**
+   Refactor and migrate only in tested slices. Preserve behavior unless the PR explicitly documents an intentional product change.
 
 2. **One responsibility per module.**
    Do not let a file become parser + business logic + persistence + presentation.
@@ -36,10 +36,13 @@ The codebase must support that direction without becoming a tangled backend.
    Technical internals can stay technical, but user-facing outputs should avoid unnecessary jargon.
 
 5. **Every cleanup PR must have a test owner.**
-   A refactor is not done until the relevant tests protect the behavior.
+   A refactor or migration is not done until the relevant tests protect the behavior.
 
 6. **Small PRs beat heroic rewrites.**
    Split, test, merge. Do not rewrite the entire project in one risky branch.
+
+7. **Archive migration must be reconciled.**
+   The uploaded RC10 source archive is not a drop-in replacement for the current repo. Current repo cleanup and task-card work must be preserved.
 
 ## File-by-file audit template
 
@@ -55,20 +58,21 @@ Public API to preserve:
 Known problems:
 Product-language issues:
 Tests that protect it:
+Archive migration status:
 Action:
-  - keep / split / rename / deprecate / delete
+  - keep / split / rename / deprecate / delete / migrate-slice
 Priority:
   - P0 / P1 / P2
 ```
 
-## Current known hotspots
+## Current known hotspots and resolved areas
 
 ### `src/forge_agent/entrypoint.py`
 
 Current status:
 
 - Ask extraction completed.
-- Should remain thin.
+- Routes wrapper-owned ask command and delegates the rest to the mature CLI.
 
 Action:
 
@@ -94,103 +98,109 @@ Current responsibility:
 
 Action:
 
-- Keep for now.
-- Later may attach task-card schema and app/tool suggestions.
+- Keep.
+- Next integration point for migrated memory verdict metadata, after compatibility tests pass.
 
 ### `src/forge_agent/ask_presenter.py`
 
 Current responsibility:
 
 - Render ask output and ask errors.
+- Already supports ordinary-user task-card output.
 
 Action:
 
 - Keep.
-- Later make human output more ordinary-user friendly.
+- Preserve plain language.
 
 ### `src/forge_agent/cli.py`
 
 Current responsibility:
 
-- Builds all command parsers and handles most command dispatch.
+- Build top-level parser, create runtime, and delegate command routing to `commands.registry`.
 
-Problem:
+Current status:
 
-- Too many responsibilities.
-- Will become the next monolith if app connectors and ordinary-user task flows are added here.
+- No longer the main command monolith.
 
 Action:
 
-- Split after memory extraction.
-- Extract command modules under `src/forge_agent/commands/`.
+- Keep thin.
+- Do not move command business logic back into this file.
 
-Priority:
+### `src/forge_agent/commands/registry.py`
 
-- P0.
+Current responsibility:
+
+- Compose command parsers and route commands to handler modules.
+
+Action:
+
+- Keep.
+- If command count grows, consider table-driven registry to reduce repeated `if` routing.
 
 ### `src/forge_agent/memory.py`
 
 Current responsibility:
 
-- Public `MemoryStore` plus remaining persistence/governance/search/doctor/export logic.
+- Public `MemoryStore` plus remaining compatibility/service logic.
 
 Current extraction status:
 
 - `memory_models.py` extracted.
 - `memory_audit.py` extracted.
 - `memory_recall.py` extracted.
+- PR #59 adds separate RC10 memory engine/hardening modules but does not wire them into `MemoryStore` by default.
 
 Action:
 
-- Finish current extraction PR.
 - Keep public `MemoryStore` API stable.
-- Do not add memory features until tests and CI pass.
+- Do not bulk-replace with archive code.
+- Later split store/governance/service only with tests.
 
 Priority:
 
 - P0.
 
-### `src/forge_agent/memory_models.py`
+### `src/forge_agent/models.py` from PR #59
 
 Current responsibility:
 
-- Memory dataclasses and constants.
+- Shared migrated `MemoryRecallHit` model for the RC10 memory subsystem slice.
+
+Known problem:
+
+- Name may overlap with the broader RC10 archive `models.py` if future migration imports the full archive model layer.
 
 Action:
 
-- Keep.
+- Keep for PR #59 if tests pass.
+- Before migrating full archive models, decide whether to keep this file as a small shared model layer or rename it to `memory_types.py`.
 
-### `src/forge_agent/memory_audit.py`
+Priority:
+
+- P0 before next model-heavy migration.
+
+### `src/forge_agent/memory_engine.py` and hardening modules from PR #59
 
 Current responsibility:
 
-- Append/read memory audit rows.
+- Additive RC10 memory pipeline and hardening logic.
 
 Action:
 
-- Keep.
+- Keep isolated until runtime/session-state compatibility is audited.
+- Do not wire into user-facing ask output until tests cover current/stale/focus cases.
 
-### `src/forge_agent/memory_recall.py`
+Priority:
 
-Current responsibility:
-
-- Deterministic recall, scoring, tokenization, filters.
-
-Action:
-
-- Keep.
-- Add direct tests if future recall logic changes.
+- P0.
 
 ### `src/forge_agent/brain.py`
 
 Current responsibility:
 
 - Local deterministic planner and `BrainPlan`.
-
-Problem:
-
-- Will need ordinary-user task-card output later.
-- Should not become a full execution engine.
 
 Action:
 
@@ -213,9 +223,9 @@ Product importance:
 
 Action:
 
-- Audit after CLI split.
+- Audit after memory migration.
 - Keep behavior stable.
-- Later use it as the first ordinary-user task-card demo.
+- Keep ordinary-user task-card alignment.
 
 Priority:
 
@@ -233,7 +243,7 @@ Product importance:
 
 Action:
 
-- Audit after CLI split.
+- Audit after memory migration.
 - Separate lifecycle, persistence, and recommendation if it grows.
 
 Priority:
@@ -316,7 +326,7 @@ Current responsibility:
 
 Action:
 
-- Audit after CLI split.
+- Audit before wiring migrated RC10 runtime/session-state modules.
 - Ensure it does not duplicate ask_service, organizer, or skill logic.
 
 Priority:
@@ -338,6 +348,17 @@ Priority:
 
 - P1.
 
+## Uploaded RC10 archive reconciliation notes
+
+The archive contains more than the current visible public repo, including memory engine/hardening, gateway, governance, desktop, release, and legacy/demo material.
+
+Observed during migration:
+
+- The archive cannot be bulk copied over the repo without risking regressions.
+- Some original archive memory tests are time-sensitive and can become stale under the current date.
+- Current repo has later cleanup/task-card work that the archive does not fully represent.
+- Migration should continue as tested slices with compatibility docs.
+
 ## Test cleanup plan
 
 The test suite should remain behavior-focused.
@@ -346,91 +367,76 @@ The test suite should remain behavior-focused.
 
 - Ask parsing and validation.
 - Ask workspace handling.
+- Task-card human output and JSON preservation.
 - Memory store behavior.
 - Memory CLI behavior.
 - File organizer dry-run and approved moves.
-- Rollback evidence.
+- Restore/undo evidence.
 - JSON error contracts.
 - Skill lifecycle.
 - Approval flows.
 - Demo smoke test.
+- PR #59 memory engine/hardening tests.
 
 ### Future test additions
 
-- Direct tests for `memory_recall.py`.
-- Direct tests for `ask_options.py`.
-- Direct tests for ordinary-user task-card schema.
+- Direct tests for current/stale note focus cases in migrated memory engine.
+- Direct tests for archive-to-current model compatibility.
+- Direct tests for `ask_options.py` if flags grow.
 - Direct tests for connector permission/explanation language when connectors arrive.
 
-## PR sequence
+## PR sequence from the current state
 
-### PR 1: product positioning docs
+### PR #59: RC10 memory subsystems
 
 Status:
 
-- In progress.
+- Open.
 
 Includes:
 
-- README positioning update.
-- `PRODUCT_POSITIONING.md`.
-- `COMPETITIVE_BENCHMARK.md` update.
-- `STABILIZATION_AUDIT.md` update.
-- This cleanup plan.
+- Additive memory engine/hardening modules.
+- Focused memory pipeline tests.
+- Migration audit docs.
 
-### PR 2: finish memory extraction
+### Next PR: runtime/session compatibility
 
 Includes:
 
-- Current `memory_models.py` / `memory_audit.py` / `memory_recall.py` work.
-- Run memory tests and CI.
-- No product behavior changes.
+- Compare archive `models.py`, `session_state.py`, `runtime.py`, `planner.py`, and gateway modules against current repo.
+- Decide model naming before importing broad archive model classes.
+- Preserve existing CLI/task-card behavior.
 
-### PR 3: codebase inventory
+### Next PR: full codebase inventory
 
 Includes:
 
-- Full source file inventory.
+- Source file inventory.
 - Test ownership map.
 - Keep/split/rename/deprecate/delete decisions.
 
-### PR 4: CLI handler split
+### Next PR: user-facing integration
+
+Only after compatibility checks.
 
 Includes:
 
-- Command module extraction.
-- Preserve CLI behavior and JSON contracts.
-
-### PR 5: ordinary-user task-card schema
-
-Only after cleanup.
-
-Includes:
-
-- User-facing task schema.
-- Ask output starts to align with:
-
-```text
-What you asked
-What I will do
-What this may affect
-Confirm / cancel / edit
-Result
-Restore / correct when possible
-```
+- Memory verdict metadata wired into ask planning.
+- Ordinary-user phrasing for “what I remembered for this task.”
 
 ## Definition of clean enough
 
 The codebase is clean enough for new product work when:
 
 1. `entrypoint.py` is thin.
-2. `cli.py` is no longer the main business logic container.
-3. `memory.py` is not a monolith.
+2. `cli.py` stays command composition rather than business logic.
+3. `memory.py` is a compatibility/service layer, not a monolith.
 4. Each major workflow has a clear owner module.
 5. User-facing output has an ordinary-language owner.
 6. Tests protect every high-value command path.
 7. New connectors can be added without editing one giant file.
 8. A future simple front end can call service modules without shelling through CLI-only logic.
+9. RC10 archive modules are reconciled against the current repo before being wired in.
 
 ## Non-goals during cleanup
 
@@ -439,10 +445,9 @@ Do not add:
 - broad app integrations,
 - desktop UI,
 - OAuth flows,
-- semantic memory retrieval,
 - autonomous execution,
 - new content generators,
 - new scheduling behavior,
 - or new public commands.
 
-Cleanup first. Then product features.
+Cleanup and migration compatibility first. Then product features.
