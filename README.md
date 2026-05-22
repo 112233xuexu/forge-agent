@@ -1,126 +1,100 @@
 # Forge Agent
 
-Forge Agent is an AI butler for ordinary users: people describe what they want in plain language, and Forge uses connected apps, long-term memory, clear confirmation, work records, and recovery paths to get the work done without forcing users to learn every tool.
-
-In one sentence:
+Forge Agent is a local-first AI butler for ordinary users.
 
 ```text
 普通人不用学软件，也能一句话把事情办完。
 ```
 
-Forge is not meant to expose APIs, tools, scopes, prompts, or automation internals to the user. The product goal is a simple front end where the user says what they need:
+The goal is not to expose tools, APIs, scopes, prompts, registries, or agent internals. The goal is a simple workflow:
 
 ```text
-Use my email to send a follow-up to John.
-Create a GitHub repository for this project. I do not know how GitHub works.
+plain request -> understandable plan -> confirmation when needed -> local execution -> evidence -> recovery/reuse
+```
+
+Forge is early-stage, but it already has a working CLI, local memory, approval-gated file organization, rollback evidence, task cards, skill lifecycle foundations, and RC10 compatibility layers for a larger runtime.
+
+## What problem does it solve?
+
+Ordinary users should not need to learn every app, CLI flag, automation rule, or recovery process just to finish routine work.
+
+Forge aims to let a user say things like:
+
+```text
 Organize this folder of invoices by month.
 Turn these notes into a clean report.
-Check whether I have important emails today.
 Remember how I like project reports formatted.
+Show me what you will do before changing files.
+Restore the last file organization if it was wrong.
 ```
 
-Behind that simple request, Forge can use memory, skills, approvals, file operations, connected apps, and task history. But the user-facing flow should stay human:
+Internally Forge can use memory, skills, workflow plans, confirmations, local tools, history, and recovery paths. Externally it should stay understandable.
 
-```text
-You ask.
-Forge explains what it will do.
-You confirm important actions.
-Forge does the work.
-Forge records what happened.
-If possible, Forge can restore or correct the result.
-```
+## 3-minute quickstart
 
-## Core product promise
-
-Forge is designed to reduce ordinary users' learning cost and time cost.
-
-The user should not need to know:
-
-- how GitHub works,
-- how email APIs work,
-- how Notion, Calendar, Drive, or Slack integrations work,
-- how to batch organize files,
-- how to configure agent tools,
-- how to write prompts repeatedly,
-- or how to recover from mistakes manually.
-
-Forge should learn stable preferences and project context through a visible Memory Palace, then use that context to help users finish repeat work faster.
-
-The public-facing product pillars are:
-
-```text
-simple use + long-term memory + connected apps + clear confirmation + work records + recovery
-```
-
-## Why it is different
-
-Many agent projects expose skills, tools, providers, sandboxes, gateways, permissions, registries, and APIs directly to the user. Forge Agent's direction is to hide that complexity by default.
-
-The user-facing flow should be:
-
-```text
-plain request -> understandable plan -> confirm if important -> execute -> show result -> remember useful preferences -> allow correction/recovery
-```
-
-The internal engineering flow can still be strict:
-
-```text
-intent -> memory recall -> skill/tool selection -> preview -> approval when needed -> execution evidence -> history -> recovery where supported -> skill reuse
-```
-
-The product rule is:
-
-```text
-Users speak in outcomes. Forge handles the software.
-```
-
-## User-facing language
-
-Forge should avoid exposing engineering terms when ordinary language is clearer.
-
-| Internal term | User-facing language |
-|---|---|
-| permission | What I can see or change |
-| approval | You confirm before I do it |
-| rollback | Restore / undo |
-| audit log | What I did |
-| memory | What I remember about you |
-| tool | An app I can use for you |
-| risk | What this may affect |
-| skill | How I should do this next time |
-
-## 60-second demo
+Requirements: Python 3.11+.
 
 ```bash
+git clone https://github.com/112233xuexu/forge-agent.git
+cd forge-agent
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .
-forge-agent demo --kind file-organizer
+python -m pip install --upgrade pip
+python -m pip install -e . pytest
+forge-agent --help
 ```
 
-On Windows PowerShell:
+Windows PowerShell:
 
 ```powershell
+git clone https://github.com/112233xuexu/forge-agent.git
+cd forge-agent
 python -m venv .venv
 .venv\Scripts\Activate.ps1
-pip install -e .
+python -m pip install --upgrade pip
+python -m pip install -e . pytest
+forge-agent --help
+```
+
+Run the safe local demo:
+
+```bash
 forge-agent demo --kind file-organizer
 ```
 
-The current demo creates a safe sandbox and proves automatic skill creation, approval, file organization, evidence, and skill reuse. No real user files are touched by the demo.
+Preview a task card:
 
-The demo is still CLI-first today. The product direction is a simpler front end where the same workflow appears as:
-
-```text
-I found 5 invoice files.
-I can organize them by month.
-This will move files but not change file contents.
-Do you want me to continue?
+```bash
+forge-agent ask "organize my invoices by month" --json
 ```
 
-## Product commands
+Run the RC10 compatibility smoke tests:
 
-Brain Adapter planning:
+```bash
+python -m pytest -q \
+  tests/test_memory_engine_pipeline.py \
+  tests/test_memory_hardening_pipeline.py \
+  tests/test_palace_graph_compat.py \
+  tests/test_context_builder_compat.py \
+  tests/test_ask_rc10_context_integration.py \
+  tests/test_rc10_state_compat.py \
+  tests/test_state_store_extended_compat.py \
+  tests/test_planner_registry_compat.py \
+  tests/test_gateway_runtime_compat.py \
+  tests/test_desktop_adapter_compat.py \
+  tests/test_http_adapter_compat.py \
+  tests/test_workflow_compat.py \
+  tests/test_workflow_executor_compat.py \
+  tests/test_runtime_execution_compat.py \
+  tests/test_skill_lifecycle_compat.py \
+  tests/test_governance_compat.py \
+  tests/test_runtime_policy_compat.py \
+  tests/test_benchmark_compat.py
+```
+
+## Current user-facing commands
+
+Ask / preview:
 
 ```bash
 forge-agent ask "organize my invoices by month" --json
@@ -128,7 +102,7 @@ forge-agent --workspace .forge-agent ask "make a project status deck" --json
 forge-agent ask --help
 ```
 
-Real dry-run-first file organization:
+Dry-run-first file organization:
 
 ```bash
 forge-agent organize ./invoices
@@ -136,164 +110,144 @@ forge-agent organize ./invoices --approve
 forge-agent organize-rollback
 ```
 
-v2.1 file safety means approved organization skips existing destinations instead of overwriting them. Skipped files are exposed in JSON and manifests.
-
-v2.2 CLI reliability means JSON mode returns structured JSON for supported file-related errors, not plain text.
-
-Operation history:
+Memory, skills, history, approvals, and schedules:
 
 ```bash
+forge-agent memory --help
+forge-agent skills
 forge-agent history list
-forge-agent history show <operation_id>
-```
-
-Schedule registry:
-
-```bash
-forge-agent schedule add "every day 9am" forge-agent organize ~/Downloads
+forge-agent approvals list
 forge-agent schedule list
-forge-agent schedule pause <task_id>
-forge-agent schedule resume <task_id>
+forge-agent doctor
 ```
 
-Content skill packs:
+Content templates:
 
 ```bash
-forge-agent make ppt "project status update"
+forge-agent make ppt "project update"
 forge-agent make report "monthly validation report"
 forge-agent make news "AI agent ecosystem"
 forge-agent make storyboard "30-second product demo"
 ```
 
-Skill lifecycle:
+## What works today
 
-```bash
-forge-agent skills
-forge-agent skills show <skill_id>
-forge-agent skills promote <skill_id>
-forge-agent skills quarantine <skill_id>
+- Local CLI entrypoint: `forge-agent`.
+- Brain Adapter planning through `forge-agent ask`.
+- Ordinary-user task-card preview.
+- Visible local Memory Palace with bounded recall and ask-time filters.
+- Dry-run-first file organizer.
+- Approval-gated organize execution.
+- Rollback for approved organize operations.
+- Operation history.
+- Local skill lifecycle controls.
+- Local content skill packs.
+- Structured JSON errors for supported file-related failures.
+- RC10 compatibility slices for memory, state, planner, gateway, workflow, execution, governance, context graph, desktop/client payloads, HTTP payloads, and benchmark smoke checks.
+
+## RC10 compatibility migration
+
+PR #59 migrates a larger RC10 runtime into the public repo in tested slices instead of bulk-overwriting current code.
+
+Added or wired:
+
+- memory engine and memory hardening;
+- palace graph and context builder;
+- ask replacement wiring for RC10 memory/context metadata;
+- checkpoint/session models and extended `StateStore` persistence;
+- tool registry, simple planner, gateway, and `CompatRuntime`;
+- workflow model and local workflow executor;
+- skill lifecycle compatibility layer;
+- governance verdicts and ledger replay;
+- desktop/client adapter and pure HTTP payload adapter;
+- compatibility benchmark harness;
+- dedicated RC10 compatibility CI workflow.
+
+The first real replacement wiring is in `ask_service.py`: existing `MemoryStore.recall()` results are promoted into RC10 `MemoryRecallHit`, `memory_verdict`, `context_packs`, and `context_focus_path` metadata while preserving the old `memory_used` output shape.
+
+## What is intentionally not claimed yet
+
+Forge Agent is not production-autonomous yet.
+
+Current limitations:
+
+- No broad live app connectors are enabled by default.
+- No OAuth flows are shipped.
+- No signed desktop installer is shipped.
+- No production background daemon is shipped.
+- `http_adapter.py` normalizes payloads but does not run a server.
+- `desktop_adapter.py` normalizes local client requests but does not automate the OS.
+- Content commands generate local structured artifacts/templates; they do not claim full rendered media production.
+- RC10 compatibility layers are being wired into public behavior only when tests protect the change.
+
+## Architecture
+
+```text
+CLI / ask presenter
+  -> ask service
+  -> Brain Adapter / SimplePlanner
+  -> memory recall + RC10 memory engine
+  -> context builder / palace graph
+  -> task card preview
+
+CompatRuntime
+  -> gateway adapters
+  -> state store
+  -> planner
+  -> optional governance
+  -> optional workflow execution
+
+Local tools
+  -> ToolRegistry
+  -> WorkflowExecutor
+  -> ledger / skill lifecycle / benchmark harness
 ```
 
-## Current capability map
+See `docs/ARCHITECTURE_OVERVIEW.md` for details.
 
-- v1.1: real dry-run-first organize command.
-- v1.2: skill lifecycle controls.
-- v1.3: rollback for approved organize operations.
-- v1.4: operation history.
-- v1.5: schedule registry.
-- v1.6: PPT/report artifact generation.
-- v1.7: news brief template generation.
-- v1.8: video storyboard generation.
-- v1.9: Brain Adapter planning layer with `forge-agent ask`.
-- v2.0: product hardening for CLI consistency, input validation, error surfaces, and stronger tests.
-- v2.1: file safety hardening for destination collisions and skipped-file evidence.
-- v2.2: CLI reliability hardening for structured JSON errors.
-- v2.5-v2.6: visible Memory Palace, bounded recall, sensitive memory opt-in, ask-time memory controls, and scoped memory retrieval.
-- stabilization: ask extraction and memory extraction work to keep architecture maintainable before larger product features.
+## Project docs
 
-The current features are local deterministic product surfaces first. They do not yet claim full live news retrieval, real background daemon execution, `.pptx` rendering, voiceover generation, video rendering, broad app integrations, or provider-backed autonomous execution.
+- `docs/ARCHITECTURE_OVERVIEW.md`
+- `docs/OPEN_SOURCE_RELEASE_CHECKLIST.md`
+- `docs/PRO_APPLICATION_READY.md`
+- `docs/STABILIZATION_AUDIT.md`
+- `docs/CODEBASE_CLEANUP_PLAN.md`
+- `docs/RC10_MEMORY_MIGRATION.md`
+- `docs/RC10_ADAPTER_MIGRATION.md`
+- `docs/ORDINARY_USER_DEMO.md`
+- `docs/DEMO_OUTPUT_SAMPLE.json`
 
-See also:
+## Development
 
-- [Product positioning](docs/PRODUCT_POSITIONING.md)
-- [Competitive benchmark and roadmap](docs/COMPETITIVE_BENCHMARK.md)
-- [Stabilization audit](docs/STABILIZATION_AUDIT.md)
-- [Ordinary-user demo guide](docs/ORDINARY_USER_DEMO.md)
-- [v1.1 organize command](docs/V1_1_ORGANIZE_COMMAND.md)
-- [v1.2 skill lifecycle](docs/V1_2_SKILL_LIFECYCLE.md)
-- [v1.3 rollback](docs/V1_3_ROLLBACK.md)
-- [v1.4-v1.8 product expansion](docs/V1_4_TO_V1_8_PRODUCT_EXPANSION.md)
-- [v1.9 Brain Adapter](docs/V1_9_BRAIN_ADAPTER.md)
-- [v1.9 release notes](docs/RELEASE_NOTES_V1_9.md)
-- [v2.0 hardening notes](docs/RELEASE_NOTES_V2_0.md)
-- [v2.1 file safety notes](docs/RELEASE_NOTES_V2_1.md)
-- [v2.2 CLI reliability notes](docs/RELEASE_NOTES_V2_2.md)
-- [Demo output sample](docs/DEMO_OUTPUT_SAMPLE.json)
-- [Release candidate notes](docs/RELEASE_CANDIDATE.md)
-- [OpenAI OSS / Pro readiness notes](docs/PRO_APPLICATION_READY.md)
-
-## Everyday commands
+Install editable dependencies:
 
 ```bash
-forge-agent init
-forge-agent ask "organize my invoices by month" --json
-forge-agent --workspace .forge-agent ask "make a project status deck" --json
-forge-agent ask --help
-forge-agent do "draft a project status note"
-forge-agent organize ./invoices
-forge-agent organize ./invoices --approve
-forge-agent organize-rollback
-forge-agent history list
-forge-agent schedule list
-forge-agent make ppt "project update"
-forge-agent skills
-forge-agent approvals list
-forge-agent doctor
+python -m pip install -e . pytest
 ```
 
-## Current status
-
-- Package version: `1.0.0rc10`.
-- CLI entrypoint: `forge-agent`.
-- License: MIT.
-- Repository visibility: public.
-- Product direction: ordinary-user AI butler that lowers learning cost and time cost.
-- Demo: ordinary-user file organizer with approval ledger and skill reuse proof.
-- Brain Adapter: local deterministic planning through `forge-agent ask`.
-- Memory Palace: visible local memory with recall, audit, sensitive-memory controls, and ask-time filters.
-- File safety: organize destination collisions are skipped rather than overwritten, and skipped files are visible in JSON/manifests.
-- CLI reliability: supported file-related JSON mode failures return structured JSON errors.
-- Release honesty: this source release does not claim signed installers, production telemetry, live-news retrieval, provider-backed autonomous execution, broad app integrations, or broad field reliability.
-
-## What is included
-
-- Local runtime and CLI under `src/forge_agent`.
-- Local Brain Adapter with deterministic planning.
-- Local Memory Palace with visible storage and controlled recall.
-- Local skill store with automatic skill creation, lifecycle, and reuse.
-- Approval ledger for risky actions.
-- Deterministic file organizer demo.
-- Real dry-run-first organize command.
-- Rollback support for approved organize operations.
-- Operation history and schedule registry.
-- Local content skill packs for PPT outline, report, news brief, and storyboard artifacts.
-- Product, MVP, commercialization, architecture, validation, and competitive-analysis docs.
-- GitHub Actions smoke CI and tests for the public runtime/demo/organizer/lifecycle/product/brain/entrypoint path.
-
-## Validation
+Compile and test:
 
 ```bash
 python -m compileall src tests
-python -m pytest -q tests/test_public_runtime.py tests/test_organizer.py tests/test_organizer_skipped_json.py tests/test_rollback_evidence.py tests/test_cli_json_errors.py tests/test_skills_lifecycle.py tests/test_product_packs.py tests/test_brain_adapter.py tests/test_entrypoint_errors.py tests/test_entrypoint_workspace.py tests/test_entrypoint_ask_validation.py
-forge-agent demo --kind file-organizer --json
-forge-agent organize ./invoices --json
-forge-agent ask "organize my receipts" --json
-forge-agent --workspace .forge-agent ask "organize my receipts" --json
-forge-agent ask --help
+python -m pytest -q
 ```
 
-GitHub Actions validates Python 3.11 and 3.12, compile checks, public runtime/demo tests, organizer tests, skipped-file JSON/manifest tests, rollback evidence tests, CLI JSON error tests, skill lifecycle tests, product pack tests, Brain Adapter tests, entrypoint hardening tests, the file-organizer demo, real organizer dry-run, rollback behavior, schedule registry, content artifacts, `forge-agent ask`, workspace-aware ask usage, ask validation, and demo evidence files.
+Run only RC10 compatibility tests:
 
-The original RC10 source package contains a larger runtime and test suite. The public repository is being normalized around the ordinary-user product surface first.
+```bash
+python -m pytest -q tests/test_memory_engine_pipeline.py tests/test_memory_hardening_pipeline.py tests/test_palace_graph_compat.py tests/test_context_builder_compat.py tests/test_ask_rc10_context_integration.py tests/test_rc10_state_compat.py tests/test_state_store_extended_compat.py tests/test_planner_registry_compat.py tests/test_gateway_runtime_compat.py tests/test_desktop_adapter_compat.py tests/test_http_adapter_compat.py tests/test_workflow_compat.py tests/test_workflow_executor_compat.py tests/test_runtime_execution_compat.py tests/test_skill_lifecycle_compat.py tests/test_governance_compat.py tests/test_runtime_policy_compat.py tests/test_benchmark_compat.py
+```
 
-## Roadmap
+## Contributing
 
-- [Product positioning](docs/PRODUCT_POSITIONING.md)
-- [Competitive benchmark and roadmap](docs/COMPETITIVE_BENCHMARK.md)
-- [Stabilization audit](docs/STABILIZATION_AUDIT.md)
-- [Project Vision](docs/PROJECT_VISION.md)
-- [Competitive Analysis](docs/COMPETITIVE_ANALYSIS.md)
-- [MVP Roadmap](docs/MVP_ROADMAP.md)
-- [Product Strategy](docs/PRODUCT_STRATEGY.md)
-- [Commercialization Plan](docs/COMMERCIALIZATION_PLAN.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Validation](docs/VALIDATION.md)
-- [OpenAI OSS Application Notes](docs/OPENAI_OSS_APPLICATION.md)
+Please read:
 
-## OpenAI Codex for OSS fit
+- `CONTRIBUTING.md`
+- `CODE_OF_CONDUCT.md`
+- `SECURITY.md`
 
-Forge Agent targets a real usability gap in open-source agent systems: existing systems can be powerful, but ordinary users still face too much setup, tool knowledge, app knowledge, and recovery risk. Codex would help review pull requests, triage issues, expand tests, harden confirmation/recovery paths, normalize the larger RC10 source tree, and maintain evidence-backed releases.
+Project rule: do not bulk-copy archive code over the public repo. Migrate in tested slices, preserve CLI behavior, and update docs/tests with each behavior change.
 
-## Repository owner
+## License
 
-Maintained by `jiangmingyue` / `112233xuexu`.
+MIT. See `LICENSE`.
