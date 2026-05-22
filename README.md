@@ -68,6 +68,16 @@ Preview a task card:
 forge-agent ask "organize my invoices by month" --json
 ```
 
+Try the ordinary-user `do` entrypoint:
+
+```bash
+forge-agent do --preview "Summarize these notes: ship update"
+forge-agent do --explain "Rewrite 'Need approval' in a warmer tone"
+forge-agent do --execute "Summarize these notes: ship update"
+```
+
+`do` without flags keeps the legacy local task-record behavior. `--preview`, `--explain`, and `--execute` use the new user-goal runner path.
+
 Run the RC10 compatibility smoke tests:
 
 ```bash
@@ -102,6 +112,15 @@ forge-agent --workspace .forge-agent ask "make a project status deck" --json
 forge-agent ask --help
 ```
 
+Ordinary-user goal entrypoint:
+
+```bash
+forge-agent do "capture this goal in my local task ledger"
+forge-agent do --preview "Summarize these notes: ship update"
+forge-agent do --explain "Rewrite 'Need approval' in a warmer tone"
+forge-agent do --execute "Summarize these notes: ship update"
+```
+
 Dry-run-first file organization:
 
 ```bash
@@ -134,6 +153,7 @@ forge-agent make storyboard "30-second product demo"
 
 - Local CLI entrypoint: `forge-agent`.
 - Brain Adapter planning through `forge-agent ask`.
+- Ordinary-user `do --preview/--explain/--execute` path backed by `UserGoalRunner`.
 - Ordinary-user task-card preview.
 - Visible local Memory Palace with bounded recall and ask-time filters.
 - Dry-run-first file organizer.
@@ -165,6 +185,8 @@ Added or wired:
 
 The first real replacement wiring is in `ask_service.py`: existing `MemoryStore.recall()` results are promoted into RC10 `MemoryRecallHit`, `memory_verdict`, `context_packs`, and `context_focus_path` metadata while preserving the old `memory_used` output shape.
 
+The next user-facing replacement is `forge-agent do --preview/--explain/--execute`, which starts the zero-config user-goal runner path without breaking legacy `do` task records.
+
 ## What is intentionally not claimed yet
 
 Forge Agent is not production-autonomous yet.
@@ -189,6 +211,12 @@ CLI / ask presenter
   -> memory recall + RC10 memory engine
   -> context builder / palace graph
   -> task card preview
+
+UserGoalRunner
+  -> SkillLibrary match
+  -> SimplePlanner fallback
+  -> GovernanceEngine
+  -> WorkflowExecutor when execution is requested
 
 CompatRuntime
   -> gateway adapters
