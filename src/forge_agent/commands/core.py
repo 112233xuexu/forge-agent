@@ -6,6 +6,7 @@ import json
 from forge_agent.benchmark import default_benchmark_tools
 from forge_agent.runtime import ForgeRuntime
 from forge_agent.user_goal import UserGoalRunner
+from forge_agent.user_goal_store import UserGoalStore
 
 
 def add_core_parsers(subparsers):
@@ -35,7 +36,12 @@ def handle_do(args: argparse.Namespace, runtime: ForgeRuntime) -> int:
     goal = " ".join(args.goal)
     if args.preview or args.explain or args.execute:
         mode = "execute" if args.execute else "explain" if args.explain else "preview"
-        result = UserGoalRunner(default_benchmark_tools()).run(goal, mode=mode)
+        runtime.init_workspace()
+        store = UserGoalStore(runtime.workspace / "state.db")
+        try:
+            result = UserGoalRunner(default_benchmark_tools(), store=store).run(goal, mode=mode)
+        finally:
+            store.close()
         print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
         return 0
     result = runtime.do(goal)
