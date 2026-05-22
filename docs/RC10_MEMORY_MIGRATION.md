@@ -1,6 +1,6 @@
 # RC10 compatibility migration
 
-This branch moves runnable compatibility subsystems from the prepared RC10 source archive into the normal repository source tree.
+This branch moves runnable compatibility subsystems from the prepared RC10 source archive into the normal repository source tree, then begins tested replacement wiring into existing ask behavior.
 
 ## Added memory modules
 
@@ -11,7 +11,13 @@ This branch moves runnable compatibility subsystems from the prepared RC10 sourc
 
 - `palace_graph.py` adds an in-memory context graph with nodes, edges, path normalization, search, shortest paths, and recall-hit path filtering.
 - `context_builder.py` converts recall hits into context packs with focus path, breadcrumbs, related paths, and ranked hits.
-- This does not replace the existing `MemoryStore`; it gives future integration a tested context-path layer.
+
+## Replaced ask memory metadata wiring
+
+- `ask_service.py` now converts existing `MemoryStore.recall()` results into RC10 `MemoryRecallHit` values.
+- Ask planning now attaches `memory_engine`, `memory_verdict`, `context_packs`, and `context_focus_path` metadata.
+- The legacy `memory_used` shape remains for CLI/task-card compatibility.
+- `ask_presenter.py` shows the selected context path in human output when available.
 
 ## Added state compatibility base
 
@@ -43,20 +49,22 @@ This branch moves runnable compatibility subsystems from the prepared RC10 sourc
 - The governance layer can allow, pause for confirmation, or stop a plan before optional local execution.
 - This does not replace existing approvals/history modules.
 
-## Why this is additive
+## Why this is additive and tested
 
-The current public CLI and runtime already include later ordinary-user task-card work. This migration intentionally does not overwrite those files. The migrated subsystems are introduced as additive modules so follow-up PRs can connect them to `ask`, task planning, workspace state, and user-facing output without regressing the existing command registry.
+The current public CLI and runtime already include later ordinary-user task-card work. This migration intentionally does not bulk-overwrite those files. Replacements are wired only where tests preserve compatibility.
 
 The full RC10 runtime stack is larger than this PR. It includes benchmarks, desktop bridge, HTTP adapters, and many persistence tables. Those pieces should continue to migrate as tested slices instead of one bulk replacement.
 
 ## Verification
 
-The test coverage added by this branch includes:
+The test coverage added or updated by this branch includes:
 
 - `tests/test_memory_engine_pipeline.py`
 - `tests/test_memory_hardening_pipeline.py`
 - `tests/test_palace_graph_compat.py`
 - `tests/test_context_builder_compat.py`
+- `tests/test_ask_rc10_context_integration.py`
+- `tests/test_ask_presenter_task_card.py`
 - `tests/test_rc10_state_compat.py`
 - `tests/test_planner_registry_compat.py`
 - `tests/test_gateway_runtime_compat.py`
@@ -70,5 +78,5 @@ The test coverage added by this branch includes:
 Run locally with:
 
 ```bash
-python -m pytest tests/test_memory_engine_pipeline.py tests/test_memory_hardening_pipeline.py tests/test_palace_graph_compat.py tests/test_context_builder_compat.py tests/test_rc10_state_compat.py tests/test_planner_registry_compat.py tests/test_gateway_runtime_compat.py tests/test_workflow_compat.py tests/test_workflow_executor_compat.py tests/test_runtime_execution_compat.py tests/test_skill_lifecycle_compat.py tests/test_governance_compat.py tests/test_runtime_policy_compat.py
+python -m pytest tests/test_memory_engine_pipeline.py tests/test_memory_hardening_pipeline.py tests/test_palace_graph_compat.py tests/test_context_builder_compat.py tests/test_ask_rc10_context_integration.py tests/test_ask_presenter_task_card.py tests/test_rc10_state_compat.py tests/test_planner_registry_compat.py tests/test_gateway_runtime_compat.py tests/test_workflow_compat.py tests/test_workflow_executor_compat.py tests/test_runtime_execution_compat.py tests/test_skill_lifecycle_compat.py tests/test_governance_compat.py tests/test_runtime_policy_compat.py
 ```
