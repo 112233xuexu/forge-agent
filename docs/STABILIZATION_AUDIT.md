@@ -10,151 +10,35 @@ Forge is being repositioned as an AI butler for ordinary users:
 普通人不用学软件，也能一句话把事情办完。
 ```
 
-That product direction requires a clean codebase. A simple front end may hide thousands of connectors in the future, but the backend cannot become a monolith.
-
-No new runtime features should be added until the core architecture is clarified and the current codebase is reviewed file by file.
-
-## Final product target
-
-Forge Agent is not only a memory system, not only an automation CLI, and not only a safety framework.
-
-The product target is:
+The product target remains:
 
 ```text
 simple request -> clear plan -> confirm important actions -> execute through apps/tools -> record result -> recover/correct when possible -> remember useful preferences for next time
 ```
 
-The named benchmark directions are now:
+The backend must stay maintainable while moving toward lower user learning cost and lower user time cost.
 
-1. **OpenHuman**: ordinary-user AI entry point, many connected apps, simple personal assistant framing.
-2. **OpenClaw**: self-hosted agent execution, tool access, automation, messaging/workflow entry points, and practical task execution.
-3. **Hermes Agent**: persistent memory, self-improvement, experience-to-skill loops, and long-running agent continuity.
+## Current repository status
 
-Forge should match the useful parts of all three, then exceed them on:
+This audit was refreshed after the RC10 source-archive migration work began.
 
-- lower user learning cost,
-- lower user time cost,
-- visible memory governance,
-- human-readable confirmation,
-- recoverable operations,
-- work records,
-- skill lifecycle discipline,
-- ordinary-user understandability,
-- and maintainable backend structure.
+| Area | Current status | Rule |
+|---|---|---|
+| Product positioning | Ordinary-user direction is the protected direction. | Keep user-facing language plain. |
+| Ask wrapper | `entrypoint.py` routes ask and delegates parsing/service/presentation. | Do not expand `entrypoint.py` again. |
+| CLI router | `cli.py` composes parsers through `commands/registry.py`; command handlers are already split into command modules. | Keep `cli.py` thin; avoid reintroducing command business logic. |
+| Task cards | Ordinary-user task-card model and ask output work already landed before this migration. | Keep task-card wording ordinary-user-first. |
+| Existing memory store | `memory.py` remains the public `MemoryStore` compatibility/service layer backed by `memory_models.py`, `memory_audit.py`, and `memory_recall.py`. | Preserve public CLI/API behavior. |
+| RC10 memory subsystems | PR #59 migrates memory engine/hardening modules additively and does not wire them into runtime by default. | Do not blindly overwrite current stable runtime paths. |
+| Source archive | The uploaded RC10 archive is larger than the visible public repo and includes desktop, gateway, governance, release, and legacy demos. | Migrate by tested slices, not by bulk copy. |
 
-## What must stop now
+## What must not happen
 
 Do not continue by adding features directly into already-heavy files.
 
-The immediate hotspots are:
+Do not blindly paste the whole RC10 archive over the current repo. The current repository already contains later cleanup work that must be preserved, including the command registry and ordinary-user task-card changes.
 
-- `src/forge_agent/entrypoint.py`
-- `src/forge_agent/cli.py`
-- `src/forge_agent/memory.py`
-
-But the cleanup scope is larger than those files. The whole project needs a file-by-file review before broad app connectors or front-end work begins.
-
-## Current architecture issues
-
-### 1. `entrypoint.py` became an ask orchestration file
-
-Status:
-
-The first stabilization extraction has already moved ask parsing, ask service assembly, and ask presentation into dedicated modules.
-
-Target:
-
-| Module | Responsibility |
-|---|---|
-| `ask_options.py` | Parse and validate ask-specific flags. |
-| `ask_service.py` | Build the ask plan and attach memory/tool/risk metadata. |
-| `ask_presenter.py` | Render JSON and human-readable ask output. |
-| `entrypoint.py` | Route CLI entrypoint only. |
-
-Remaining rule:
-
-Do not expand `entrypoint.py` again.
-
-### 2. `cli.py` is still a monolithic command router
-
-Current responsibilities include:
-
-- Parser construction for all commands.
-- Command dispatch.
-- Memory command handling.
-- History handling.
-- Schedule handling.
-- Content generation handling.
-- Skills handling.
-- Approvals handling.
-- Organizer handling.
-- Error envelope formatting.
-
-Problem:
-
-Every new feature expands this file. This will become unmaintainable once app connectors, front-end task schemas, ordinary-user cards, and workflow handlers grow.
-
-Target split:
-
-| New module | Responsibility |
-|---|---|
-| `commands/memory.py` | Memory CLI parser and handlers. |
-| `commands/ask.py` | Ask CLI parser and handlers, if moved out of wrapper. |
-| `commands/tools.py` | Tool/app capability CLI. |
-| `commands/skills.py` | Skill CLI. |
-| `commands/approvals.py` | Approval CLI. |
-| `commands/organize.py` | File organizer CLI. |
-| `cli.py` | Compose command parsers and dispatch only. |
-
-### 3. `memory.py` is being split but is not done
-
-Original responsibilities included:
-
-- Memory item dataclass.
-- Memory recall dataclass.
-- Store initialization.
-- JSONL persistence.
-- Palace file creation.
-- CRUD-like operations.
-- Status transitions.
-- Search.
-- Recall scoring.
-- Sensitive memory gating.
-- Scope/wing filtering.
-- Audit append/read.
-- Doctor/status reporting.
-- Export bundle.
-
-Status:
-
-The extraction has started:
-
-| Module | Status |
-|---|---|
-| `memory_models.py` | Extracted. |
-| `memory_audit.py` | Extracted. |
-| `memory_recall.py` | Extracted. |
-| `memory_store.py` | Not yet extracted. |
-| `memory_governance.py` | Not yet extracted. |
-| `memory_service.py` | Not yet extracted. |
-
-Rule:
-
-Do not add memory features until the extraction PR is tested and merged.
-
-### 4. Product wording must stay ordinary-user-first
-
-The product should not lead with engineering terms such as:
-
-- rollback,
-- audit,
-- permission manifest,
-- trust kernel,
-- tool registry,
-- vector search,
-- agent framework.
-
-Internally those may exist. Externally, the product should use language like:
+Do not expose engineering jargon as the product message. Internally technical terms may exist, but external output should prefer ordinary-user language.
 
 | Internal term | User-facing language |
 |---|---|
@@ -167,117 +51,11 @@ Internally those may exist. Externally, the product should use language like:
 | risk | What this may affect |
 | skill | How I should do this next time |
 
-## Full codebase cleanup requirement
+## Stabilization phases
 
-The whole project must be audited, not just the files touched most recently.
+### S1: Product positioning and benchmark correction
 
-For each source file, the cleanup pass must record:
-
-1. What the file currently does.
-2. Whether that responsibility is still correct.
-3. Whether the file is user-facing, domain logic, persistence, presentation, test support, or legacy.
-4. Whether it mixes responsibilities.
-5. What public API must remain stable.
-6. What tests protect it.
-7. Whether it should be kept, split, renamed, deprecated, or deleted.
-8. Whether product wording is ordinary-user-friendly.
-9. Whether it moves Forge toward lower learning cost and lower time cost.
-
-## What should be preserved
-
-The recent work is not wasted. These pieces should be kept:
-
-### Memory Palace foundation
-
-Keep:
-
-- `memory add`
-- `memory list`
-- `memory show`
-- `memory search`
-- `memory forget`
-- `memory quarantine`
-- `memory restore`
-- `memory export`
-- `memory doctor`
-- `memory recall`
-- bounded recall
-- scoring
-- recall reasons
-- `last_used_at`
-- sensitive default exclusion
-- explicit sensitive opt-in
-- scope/wing filters
-- memory audit
-
-Reason:
-
-This supports long-term context and visible memory, one of Forge's strongest product pillars.
-
-### Ask memory controls
-
-Keep:
-
-- `ask --no-memory`
-- `ask --memory-limit`
-- `ask --include-sensitive-memory`
-- `ask --memory-scope`
-- `ask --memory-wing`
-- `metadata.memory_used`
-- `metadata.memory_policy`
-
-Reason:
-
-This makes memory use visible and controllable, while still supporting ordinary-user personalization.
-
-### Approval, recovery, and evidence patterns
-
-Keep:
-
-- approval ledger
-- dry-run organizer
-- approved organize operation
-- rollback/recovery manifest
-- operation history
-- skill lifecycle states
-
-Reason:
-
-These patterns should become user-facing as:
-
-```text
-I will show you first.
-You confirm before I do it.
-I keep a record.
-You can restore when possible.
-```
-
-## What should be paused
-
-Pause these until the architecture is cleaned up:
-
-- New memory commands.
-- New agent execution pipeline logic.
-- New tool/app connector runtime code.
-- New UI/TUI/Web UI.
-- New semantic retrieval.
-- New content generation features.
-- New GitHub automation features.
-- New email/calendar integrations.
-
-## Stabilization plan
-
-### Phase S1: Product positioning and benchmark correction
-
-Goal:
-
-Clarify the product direction before more code changes.
-
-Actions:
-
-- Make docs ordinary-user-first.
-- Include OpenHuman, OpenClaw, and Hermes Agent as named benchmark directions.
-- Add product positioning around lowering learning cost and time cost.
+Status: done enough to protect direction; keep refining language as docs change.
 
 Exit criteria:
 
@@ -285,54 +63,57 @@ Exit criteria:
 - The repo clearly states why ordinary users should care.
 - The repo avoids leading with engineering jargon.
 
-### Phase S2: Extract ask orchestration
+### S2: Extract ask orchestration
 
-Goal:
+Status: completed.
 
-Make `entrypoint.py` thin again.
+Current shape:
 
-Status:
+| Module | Responsibility |
+|---|---|
+| `ask_options.py` | Parse and validate ask-specific flags. |
+| `ask_service.py` | Build the ask plan and attach memory/tool/risk metadata. |
+| `ask_presenter.py` | Render JSON and human-readable ask output. |
+| `entrypoint.py` | Route console entrypoint and wrapper-owned ask command. |
 
-Completed and merged in PR #41.
+Rule: do not expand `entrypoint.py` again.
 
-Exit criteria:
+### S3: Extract memory internals and migrate RC10 memory subsystems
 
-- `entrypoint.py` only routes.
-- Existing ask tests still pass.
-- No new product behavior is introduced.
+Status: in progress.
 
-### Phase S3: Extract memory internals
+Already present on `main`:
 
-Goal:
+- `memory_models.py`
+- `memory_audit.py`
+- `memory_recall.py`
+- public `MemoryStore` compatibility/service layer in `memory.py`
 
-Keep memory functionality but split responsibilities.
+Currently migrating in PR #59:
 
-Actions:
-
-- Move dataclasses/constants out of `memory.py`.
-- Move audit helpers out of `memory.py`.
-- Move recall scoring/filtering out of `memory.py`.
-- Keep the public `MemoryStore` API stable during the first extraction.
+- memory engine pipeline,
+- freshness/ranking/resolution/verdict modules,
+- continuity/soak/recovery/quarantine hardening modules,
+- focused tests and migration notes.
 
 Exit criteria:
 
 - Existing memory tests still pass.
 - Public CLI behavior unchanged.
-- `memory.py` becomes a compatibility/service layer instead of a monolith.
+- Migrated modules are tested before being wired into runtime.
+- No source-archive module overwrites current stable behavior without an explicit compatibility check.
 
-### Phase S4: Full codebase cleanup audit
+### S4: Full codebase cleanup audit
 
-Goal:
-
-Review the entire project file by file before more feature work.
+Status: still required.
 
 Actions:
 
-- Add a codebase cleanup plan.
 - Inventory every source and test file.
 - Mark each file as keep/split/rename/deprecate/delete.
 - Record test coverage for each critical path.
 - Identify product-language mismatches.
+- Compare uploaded archive modules against current repo modules before migration.
 
 Exit criteria:
 
@@ -340,57 +121,46 @@ Exit criteria:
 - Every major command path has a test owner.
 - No new feature work starts from unclear code.
 
-### Phase S5: Split CLI handlers
+### S5: Split CLI handlers
 
-Goal:
+Status: completed enough for the current public repo.
 
-Make new features possible without growing `cli.py` further.
+Current shape:
 
-Actions:
+- `cli.py` builds parser/runtime and delegates to `commands.registry`.
+- `commands/registry.py` composes command parsers and dispatches handlers.
+- command modules own domain-specific CLI handlers.
 
-- Extract memory command parser/handler.
-- Extract approvals command parser/handler.
-- Extract skills command parser/handler.
-- Extract organizer command parser/handler.
+Remaining rule:
 
-Exit criteria:
+- Keep command handlers out of `cli.py`.
+- Preserve CLI behavior and JSON contracts.
 
-- `cli.py` becomes command composition and dispatch.
-- Existing CLI tests still pass.
+### S6: Resume product feature work
 
-### Phase S6: Resume product feature work
+Status: not yet.
 
-Only after S1-S5 should larger runtime features continue.
+Larger runtime features should wait until the migrated RC10 modules are reconciled with the current repo and the full cleanup audit is current.
 
-Next feature after stabilization:
+## Immediate PR sequence from here
 
-- ordinary-user task card schema,
-- then app-backed workflow prototypes.
+1. **PR #59: RC10 memory subsystem migration**
+   - Additive memory modules.
+   - Focused tests.
+   - Migration audit docs.
+   - No default runtime wiring yet.
 
-## Immediate next PR sequence
+2. **Next PR: runtime/session-state reconciliation**
+   - Compare RC10 `models.py`, `session_state.py`, `runtime.py`, `planner.py`, and `gateway.py` against current public modules.
+   - Migrate compatibility models before wiring memory hardening into planning.
 
-1. **PR A: product positioning docs**
-   - `README.md`
-   - `PRODUCT_POSITIONING.md`
-   - `COMPETITIVE_BENCHMARK.md`
-   - `STABILIZATION_AUDIT.md`
-   - `CODEBASE_CLEANUP_PLAN.md`
-
-2. **PR B: finish memory extraction with no behavior change**
-   - Keep public `MemoryStore` API stable.
-   - Run memory tests and CI.
-
-3. **PR C: full codebase cleanup audit**
-   - File-by-file inventory.
-   - Responsibility map.
+3. **Next PR: full codebase inventory**
+   - Source file inventory.
    - Test ownership map.
+   - Keep/split/rename/deprecate/delete decisions.
 
-4. **PR D: CLI handler extraction with no behavior change**
-   - Split command handlers.
-   - Preserve JSON output contracts.
-
-5. **PR E: ordinary-user task card schema**
-   - Only after cleanup.
+4. **Next PR: user-facing integration**
+   - Wire memory verdicts into ask/task-card metadata only after compatibility tests pass.
 
 ## Decision rule during stabilization
 
@@ -400,14 +170,14 @@ A change is allowed only if it does one of these:
 - Reduces file responsibility.
 - Preserves existing behavior while improving structure.
 - Adds tests that protect existing behavior.
-- Improves OpenHuman/OpenClaw/Hermes benchmark accuracy.
 - Reduces future user learning cost or time cost.
+- Migrates RC10 source in a tested, compatibility-preserving slice.
 
 A change is not allowed if it:
 
-- Adds a new runtime feature before cleanup.
+- Blindly overwrites current repo code with archive code.
 - Adds a new command before cleanup.
-- Expands `entrypoint.py`, `cli.py`, or `memory.py` further.
+- Expands `entrypoint.py`, `cli.py`, or `memory.py` again.
 - Changes behavior without a stabilization reason.
 - Makes the project look more impressive but harder to maintain.
 - Uses engineering jargon as the product message.
