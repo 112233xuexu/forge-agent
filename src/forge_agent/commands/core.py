@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from forge_agent.benchmark import default_benchmark_tools
+from forge_agent.default_tools import default_user_tools
 from forge_agent.runtime import ForgeRuntime
 from forge_agent.user_goal import UserGoalRunner
 from forge_agent.user_goal_store import UserGoalStore
@@ -39,7 +39,7 @@ def handle_do(args: argparse.Namespace, runtime: ForgeRuntime) -> int:
         runtime.init_workspace()
         store = UserGoalStore(runtime.workspace / "state.db")
         try:
-            result = UserGoalRunner(default_benchmark_tools(), store=store).run(goal, mode=mode)
+            result = UserGoalRunner(default_user_tools(), store=store).run(goal, mode=mode)
         finally:
             store.close()
         print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
