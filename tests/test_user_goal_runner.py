@@ -2,6 +2,7 @@ from forge_agent.models import StepExecution
 from forge_agent.skill_lifecycle import SkillDefinition, SkillLibrary
 from forge_agent.tool_registry import ToolRegistry
 from forge_agent.user_goal import UserGoalRunner
+from forge_agent.user_goal_store import UserGoalStore
 
 
 def make_tools():
@@ -71,3 +72,40 @@ def test_user_goal_explain_does_not_execute():
     assert result.status == "explained"
     assert result.execution is None
     assert "I made a plan" in result.text
+
+
+def test_user_goal_store_records_traces_and_promotes_skill(tmp_path):
+    store = UserGoalStore(tmp_path / "state.db")
+    try:
+        runner = UserGoalRunner(make_tools(), store=store)
+
+        first = runner.run("Summarize these notes", inputs={"notes": "one"}, mode="execute")
+        second = runner.run("Summarize these notes", inputs={"notes": "two"}, mode="execute")
+
+        assert first.status == "completed"
+        assert second.status == "completed"
+        assert second.promoted_skill is not None
+        assert store.to_status() == {"skill_count": 1, "trace_count": 2}
+    finally:
+        store.close()
+
+
+def test_user_goal_store_loads_promoted_skill_for_next_runner(tmp_path):
+    store = UserGoalStore(tmp_path / "state.db")
+    try:
+        runner = UserGoalRunner(make_tools(), store=store)
+        runner.run("Summarize these notes", inputs={"notes": "one"}, mode="execute")
+        runner.run("Summarize these notes", inputs={"notes": "two"}, mode="execute")
+    finally:
+        store.close()
+
+    store = UserGoalStore(tmp_path / "state.db")
+    try:
+        runner = UserGoalRunner(make_tools(), store=store)
+        result = runner.run("please summarize notes", inputs={"notes": "three"}, mode="execute")
+
+        assert result.status == "completed"
+        assert result.skill is not None
+        assert result.skill.tool_names == ["summarize_notes"]
+    finally:
+        store.close()
