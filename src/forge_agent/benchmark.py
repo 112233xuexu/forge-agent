@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 import time
 
 from .context_builder import build_context_for_query
-from .governance import GovernanceEngine
 from .memory_engine import run_memory_engine
 from .models import MemoryRecallHit
-from .planner import SimplePlanner
 from .runtime_compat import CompatRuntime
 from .session_state import StateStore
 from .tool_registry import ToolRegistry
@@ -131,7 +129,7 @@ def default_benchmark_cases() -> list[BenchmarkCase]:
     return [
         BenchmarkCase("summarize", "Summarize these notes", {"notes": "prepare update"}, "completed", ["summarize_notes"]),
         BenchmarkCase("translate_missing", "Translate this into spanish", {}, "input_required", ["translate_text"]),
-        BenchmarkCase("paraphrase", 'Rewrite "Need approval" in a warmer tone', {}, "completed", ["paraphrase_text"]),
+        BenchmarkCase("paraphrase", 'Rewrite "Need approval" in a warmer tone', {"text": "Need approval", "style": "warm"}, "completed", ["paraphrase_text"]),
     ]
 
 
