@@ -1,6 +1,6 @@
-# RC10 memory, state, planner, and gateway migration
+# RC10 memory, state, planner, gateway, and workflow migration
 
-This branch moves runnable memory, state, planner, and gateway compatibility subsystems from the prepared RC10 source archive into the normal repository source tree.
+This branch moves runnable memory, state, planner, gateway, and workflow compatibility subsystems from the prepared RC10 source archive into the normal repository source tree.
 
 ## Added core memory modules
 
@@ -21,17 +21,7 @@ This branch moves runnable memory, state, planner, and gateway compatibility sub
 
 ## Added state compatibility base
 
-- `src/forge_agent/models.py` now also includes RC10-compatible checkpoint/session primitives:
-  - `SessionRecord`
-  - `MessageRecord`
-  - `StepAttempt`
-  - `StepExecution`
-  - `TaskPlan`
-  - `TaskRunResult`
-  - `RunRecord`
-  - `TaskRequestRecord`
-  - `ExecutionCheckpoint`
-  - memory-bundle migration helpers
+- `src/forge_agent/models.py` now also includes RC10-compatible checkpoint/session primitives.
 - `src/forge_agent/session_state.py` adds a deliberately small `StateStore` subset for sessions, messages, and checkpoints.
 
 ## Added planner and tool compatibility base
@@ -40,7 +30,7 @@ This branch moves runnable memory, state, planner, and gateway compatibility sub
 - `src/forge_agent/tool_registry.py` adds the RC10 callable tool registry subset.
 - `src/forge_agent/normalization.py` adds the text token normalization subset needed by the planner.
 - `src/forge_agent/planner.py` adds the stable simple planner subset for notes, follow-up, translation, and paraphrase tasks.
-- `src/forge_agent/__init__.py` exports the migrated compatibility surfaces.
+- `src/forge_agent/__init__.py` exports the migrated state/planner/runtime compatibility surfaces.
 
 ## Added gateway and runtime compatibility base
 
@@ -48,50 +38,33 @@ This branch moves runnable memory, state, planner, and gateway compatibility sub
 - `src/forge_agent/runtime_compat.py` adds `CompatRuntime`, an isolated facade for state + planner + gateway integration tests.
 - This does not replace the existing public `ForgeRuntime` in `src/forge_agent/runtime.py`.
 
+## Added workflow compatibility base
+
+- `src/forge_agent/workflow.py` adds workflow nodes, workflow bundles, argument resolution, dependency ordering, and readiness inspection.
+- `src/forge_agent/workflow_executor.py` adds local registered-tool execution for workflow bundles and task plans.
+- `CompatRuntime` now supports optional `execute=True`; default behavior remains planning-only.
+
 ## Why this is additive
 
 The current public CLI and runtime already include later ordinary-user task-card work. This migration intentionally does not overwrite those files. The migrated subsystems are introduced as additive modules so follow-up PRs can connect them to `ask`, task planning, workspace state, and user-facing output without regressing the existing command registry.
 
-The full RC10 runtime/planner/gateway stack is larger than this PR. It includes workflow nodes, skill lifecycle, palace graph, benchmarks, ledger replay, governance, HTTP adapters, and many persistence tables. Those pieces should continue to migrate as tested slices instead of one bulk replacement.
+The full RC10 runtime stack is larger than this PR. It includes skill lifecycle, palace graph, benchmarks, ledger replay, governance, HTTP adapters, and many persistence tables. Those pieces should continue to migrate as tested slices instead of one bulk replacement.
 
 ## Verification
 
-The new `tests/test_memory_engine_pipeline.py` covers:
+The test coverage added by this branch includes:
 
-- anchored recall winning over unrelated memory,
-- conflict resolution between stale and fresh facts in the same slot,
-- limit handling for adopted memory context,
-- verdict re-anchor safety when quarantine blocks adoption.
-
-The new `tests/test_memory_hardening_pipeline.py` covers:
-
-- continuity drift detection,
-- memory soak risk scoring and stable low-risk windows,
-- recovery re-anchor adoption,
-- quarantine filtering for off-focus trace hits.
-
-The new `tests/test_rc10_state_compat.py` covers:
-
-- legacy checkpoint payload migration,
-- memory-bundle promotion from legacy container shapes,
-- session/message/checkpoint round trips through the SQLite state subset.
-
-The new `tests/test_planner_registry_compat.py` covers:
-
-- simple follow-up/translation plan construction,
-- translation missing-input detection and quoted text extraction,
-- paraphrase style planning,
-- tool registry metadata and execution.
-
-The new `tests/test_gateway_runtime_compat.py` covers:
-
-- gateway session reuse and message recording,
-- webhook payload normalization,
-- compat runtime planned routes,
-- missing-input replies.
+- `tests/test_memory_engine_pipeline.py`
+- `tests/test_memory_hardening_pipeline.py`
+- `tests/test_rc10_state_compat.py`
+- `tests/test_planner_registry_compat.py`
+- `tests/test_gateway_runtime_compat.py`
+- `tests/test_workflow_compat.py`
+- `tests/test_workflow_executor_compat.py`
+- `tests/test_runtime_execution_compat.py`
 
 Run locally with:
 
 ```bash
-python -m pytest tests/test_memory_engine_pipeline.py tests/test_memory_hardening_pipeline.py tests/test_rc10_state_compat.py tests/test_planner_registry_compat.py tests/test_gateway_runtime_compat.py
+python -m pytest tests/test_memory_engine_pipeline.py tests/test_memory_hardening_pipeline.py tests/test_rc10_state_compat.py tests/test_planner_registry_compat.py tests/test_gateway_runtime_compat.py tests/test_workflow_compat.py tests/test_workflow_executor_compat.py tests/test_runtime_execution_compat.py
 ```
