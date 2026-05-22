@@ -1,102 +1,109 @@
-# OpenAI OSS / Pro application readiness
+# OSS / Pro application readiness
 
 ## Current readiness estimate
 
-This repository is now a stronger early-stage open-source application candidate with a working ordinary-user automation MVP, tagged v1.9/v2.0/v2.2 releases, v2.1 file-safety hardening, v2.2 CLI reliability hardening, and v2.3 JSON consistency work.
+Forge Agent is a stronger early-stage open-source application candidate after the RC10 compatibility migration work.
 
-Estimated readiness: **88%**.
+Estimated readiness: **91%** for an honest early-stage OSS/application review.
 
-The next lift toward 90% is external signal: stars, issues from real users, screenshots/GIFs, a tagged v2.3 release, and feedback from people trying the CLI on real folders.
+This is not a production-readiness claim. It means the repository now has a clearer product thesis, MIT license posture, deterministic local demo surfaces, tests, architecture docs, and a visible migration path from MVP CLI to a larger ordinary-user agent runtime.
 
-## Why the project is eligible to discuss
+## Product thesis
 
-Forge Agent is public, MIT-licensed, and maintained by the repository owner. It targets a real usability gap in open-source agent systems: ordinary users should not need to manually install skills, configure providers, or understand agent framework mechanics.
+Forge Agent is an AI butler for ordinary users:
+
+```text
+普通人不用学软件，也能一句话把事情办完。
+```
+
+The product aims to reduce ordinary users' learning cost and time cost. Users should speak in outcomes; Forge should handle the software, explain important actions, ask before risky work, record what happened, and remember useful preferences.
+
+## Public OpenAI plan context
+
+I did not find a public official page listing separate hidden requirements for a "developer Pro" application. The official pricing page describes ChatGPT Pro as a higher-usage plan with expanded Codex, agent mode, deep research, memory, context, and GPT-5.5 Pro access. The repository should therefore avoid claiming it meets unpublished criteria. It should present concrete evidence: runnable code, tests, CI, documentation, a clear user problem, and honest limitations.
 
 ## Repository value proposition
 
-Forge Agent is a zero-configuration skill autopilot for ordinary users. A user gives one command. The runtime finds or creates the required skill, asks approval before risky actions, records evidence, supports rollback for approved file operations, and reuses the skill next time.
-
-v1.9 added a local Brain Adapter planning layer so ordinary-language requests can become structured plans while Forge Agent remains responsible for preview, approval, evidence, history, rollback, and skill lifecycle behavior.
-
-v2.0 hardened that MVP with friendlier CLI errors, workspace-aware ask usage, ask validation, help output, JSON error output, and broader deterministic Brain Adapter tests.
-
-v2.1 hardened file safety by skipping existing destinations instead of overwriting, exposing skipped files in JSON/manifests, and preserving organize evidence during rollback.
-
-v2.2 hardened CLI reliability by returning structured JSON errors for supported file-related failures when users request JSON output.
-
-v2.3 expands JSON consistency across more command groups, including history, schedule, skills, and approvals missing-resource failures.
+Forge Agent is not trying to be another expert-only agent framework. Its open-source value is the ordinary-user workflow layer:
 
 ```text
-Brain suggests. Forge Agent governs.
+plain request -> understandable plan -> memory/context -> confirmation when needed -> local execution -> evidence -> recovery/reuse
 ```
 
-## Demo proof
+The repository now contains:
 
-The public demo is:
+- local CLI and deterministic demos;
+- ask/task-card preview behavior;
+- Memory Palace and bounded recall;
+- approval-gated file organizer workflow;
+- operation history and rollback surfaces;
+- skill lifecycle foundations;
+- RC10 compatibility slices for memory, state, planner, gateway, workflow, execution, governance, context graph, desktop/client adapter, HTTP payload adapter, and smoke benchmark harness.
 
-```bash
-forge-agent demo --kind file-organizer
-```
+## What changed in RC10 migration PR #59
 
-It shows:
+PR #59 migrated the larger RC10 runtime in tested slices rather than bulk-overwriting the public repo.
 
-- ordinary-language user goal;
-- automatic skill creation;
-- approval before file movement;
-- file organization inside a safe sandbox;
-- `manifest.json` evidence;
-- second-batch skill reuse with `reuse_proven: true`.
+Added or wired:
 
-## MVP and hardening proof
+- memory engine and memory hardening modules;
+- palace graph and context builder;
+- ask replacement wiring for RC10 memory/context metadata;
+- RC10-compatible checkpoint/session models;
+- extended `StateStore` persistence for documents, palace graphs, skill libraries, and ledger entries;
+- planner, registry, gateway, runtime compatibility facade;
+- workflow model and local workflow executor;
+- reusable skill lifecycle compatibility layer;
+- governance verdict and ledger replay layer;
+- desktop/client adapter and HTTP payload adapter;
+- compatibility benchmark/smoke harness;
+- tests for each compatibility slice.
 
-The main branch now includes:
+## Suggested short application text
 
-- v1.1 real dry-run-first organize command;
-- v1.2 skill lifecycle controls;
-- v1.3 rollback for approved organize operations;
-- v1.4 operation history;
-- v1.5 schedule registry;
-- v1.6 PPT/report local artifact generation;
-- v1.7 news brief template generation;
-- v1.8 video storyboard generation;
-- v1.9 Brain Adapter planning with `forge-agent ask`;
-- v2.0 product hardening for CLI consistency, input validation, and stronger tests;
-- v2.1 file safety for overwrite prevention and skipped-file evidence;
-- v2.2 CLI reliability for structured JSON error output;
-- v2.3 broader JSON consistency for history, schedule, skills, and approvals failure behavior.
+Forge Agent is an MIT-licensed local-first AI butler for ordinary users. It turns plain requests into previewed, confirmable, recorded workflows. The repo includes a working CLI MVP, Memory Palace, approval-gated file organization, rollback evidence, skill lifecycle, and a tested RC10 compatibility migration for memory/state/planner/gateway/workflow/governance/runtime adapters.
 
-Useful validation commands:
+## Suggested API credits / support text
 
-```bash
-forge-agent ask "organize my invoices by month" --json
-forge-agent --workspace .forge-agent ask "make a project status deck" --json
-forge-agent ask --help
-forge-agent organize ./invoices
-forge-agent organize ./invoices --approve
-forge-agent organize-rollback
-forge-agent make ppt "project status update"
-```
-
-## Suggested 500-character qualification text
-
-Forge Agent is an MIT-licensed local-first automation agent for ordinary users. It has public releases, active PR history, CI on Python 3.11/3.12, Brain Adapter planning, approval-gated organize/rollback, manifests, v2.1 file safety, v2.2 CLI reliability, and v2.3 JSON consistency. It targets a key gap: making agent automation usable without expert setup.
-
-## Suggested API credits text
-
-I would use API credits for planning tests, skill generation, PR review, issue triage, release-note drafting, and security-review workflows for Forge Agent. The goal is to improve the open-source runtime, strengthen ordinary-user automation, expand automated tests, and harden approval-gated file operations before broader release.
+I would use API credits and developer support to harden Forge Agent's planning, review, issue triage, documentation, test generation, and safety workflows. The goal is to make an open-source ordinary-user automation agent that explains actions clearly, asks before risky steps, records evidence, and lowers the amount of software knowledge a user needs.
 
 ## Honest limitations
 
-- The project is early-stage and does not yet have strong public adoption metrics.
-- The current Brain Adapter is deterministic and local; provider-backed planning is not yet included.
-- Some product surfaces are templates first: news does not fetch live sources, PPT/report output is Markdown first, and storyboard does not render video.
-- The schedule registry stores schedule records but does not yet run a background daemon.
-- The larger RC10 runtime is still being normalized into the public repo.
-- The project should not claim production readiness yet.
+- The project is still early-stage and should not claim production readiness.
+- Public adoption signal is limited.
+- Some surfaces remain local deterministic compatibility layers rather than live app integrations.
+- The current scheduler stores records but is not a production daemon.
+- Broad app connectors, OAuth flows, signed installers, telemetry, and external provider-backed autonomous execution are not complete.
+- The RC10 migration is intentionally slice-based; some archive pieces remain outside the public repo until they can be reconciled safely.
 
-## Recommended follow-up after submitting
+## Evidence to show reviewers
 
-- Create a GitHub release: `v2.3.0-json-consistency` after the v2.3 docs PR lands.
-- Add a screenshot or short GIF of the demo and `forge-agent ask` output.
-- Ask a few people to star or try the repository.
-- Keep the application wording honest and focused on usability innovation, not exaggerated adoption.
+Useful commands:
+
+```bash
+forge-agent demo --kind file-organizer
+forge-agent ask "organize my invoices by month" --json
+forge-agent organize ./invoices
+forge-agent organize ./invoices --approve
+forge-agent organize-rollback
+forge-agent history list
+forge-agent skills
+```
+
+Useful docs:
+
+- `README.md`
+- `docs/STABILIZATION_AUDIT.md`
+- `docs/CODEBASE_CLEANUP_PLAN.md`
+- `docs/ARCHITECTURE_OVERVIEW.md`
+- `docs/RC10_MEMORY_MIGRATION.md`
+- `docs/RC10_ADAPTER_MIGRATION.md`
+- `docs/OPEN_SOURCE_RELEASE_CHECKLIST.md`
+
+## Before public announcement
+
+- Merge PR #59 after CI/test review.
+- Refresh screenshots or GIFs for the file-organizer demo and ask preview.
+- Tag a release after the RC10 compatibility migration lands.
+- Keep the public wording honest: early-stage, local-first, ordinary-user focused, not production-autonomous.
+- Invite a few real users to try the demo and report issues.
