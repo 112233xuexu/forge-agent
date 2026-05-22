@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from typing import Any
 
 from .governance import GovernanceEngine, GovernanceVerdict
 from .models import TaskPlan, utc_now
 from .planner import SimplePlanner
-from .skill_lifecycle import SkillDefinition, SkillLibrary
+from .skill_lifecycle import SkillDefinition, SkillLifecycleEngine, SkillLibrary, TaskTrace, normalize_key
 from .tool_registry import ToolRegistry
+from .user_goal_store import UserGoalStore
 from .workflow import WorkflowBundle
 from .workflow_executor import WorkflowExecutionResult, WorkflowExecutor
 
@@ -23,6 +24,7 @@ class UserGoalResult:
     governance: GovernanceVerdict | None = None
     execution: WorkflowExecutionResult | None = None
     missing_inputs: list[str] = field(default_factory=list)
+    promoted_skill: SkillDefinition | None = None
     created_at: str = field(default_factory=utc_now)
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,25 +38,30 @@ class UserGoalResult:
             "governance": self.governance.to_dict() if self.governance else None,
             "execution": self.execution.to_dict() if self.execution else None,
             "missing_inputs": list(self.missing_inputs),
+            "promoted_skill": self.promoted_skill.to_dict() if self.promoted_skill else None,
             "created_at": self.created_at,
         }
 
 
 class UserGoalRunner:
-    """Plain-user entrypoint for the zero-config skill autopilot path.
+    """Plain-user entrypoint for the zero-config skill path."""
 
-    The runner prefers a reusable skill when one matches. Otherwise it falls
-    back to SimplePlanner. It can explain, preview, or execute through local
-    registered tools. It does not require users to know about skills, tools,
-    gateways, or workflow internals.
-    """
-
-    def __init__(self, tools: ToolRegistry, *, skills: SkillLibrary | None = None, governance: GovernanceEngine | None = None) -> None:
+    def __init__(
+        self,
+        tools: ToolRegistry,
+        *,
+        skills: SkillLibrary | None = None,
+        governance: GovernanceEngine | None = None,
+        store: UserGoalStore | None = None,
+        lifecycle: SkillLifecycleEngine | None = None,
+    ) -> None:
         self.tools = tools
-        self.skills = skills or SkillLibrary()
+        self.store = store
+        self.skills = skills or (store.load_skills() if store else SkillLibrary())
         self.planner = SimplePlanner(tools)
         self.governance = governance or GovernanceEngine()
         self.executor = WorkflowExecutor(tools)
+        self.lifecycle = lifecycle or SkillLifecycleEngine(repeat_threshold=2)
 
     def run(self, goal: str, *, inputs: dict[str, Any] | None = None, mode: str = "preview") -> UserGoalResult:
         normalized_mode = mode if mode in {"preview", "explain", "execute"} else "preview"
@@ -85,9 +92,27 @@ class UserGoalRunner:
         execution = self.executor.execute(WorkflowBundle.from_task_plan(plan, inputs=provided), inputs=provided)
         status = execution.status
         text = "I completed the work." if status == "completed" else "I could not complete the work."
+        promoted = self._record(goal, plan, execution, skill=skill) if status == "completed" else None
+        return UserGoalResult(goal, status, text, normalized_mode, plan=plan, skill=skill, governance=verdict, execution=execution, promoted_skill=promoted)
+
+    def _record(self, goal: str, plan: TaskPlan, execution: WorkflowExecutionResult, *, skill: SkillDefinition | None) -> SkillDefinition | None:
         if skill is not None:
-            self.skills.record_outcome(skill.skill_id, success=status == "completed")
-        return UserGoalResult(goal, status, text, normalized_mode, plan=plan, skill=skill, governance=verdict, execution=execution)
+            self.skills.record_outcome(skill.skill_id, success=True)
+            if self.store:
+                self.store.save_skills(self.skills)
+            return None
+        if self.store is None:
+            return None
+        goal_key = str(plan.meta.get("intent") or normalize_key(plan.objective or goal))
+        trace = TaskTrace.from_execution(session_id="user-goal", task_text=goal, goal_key=goal_key, plan=plan, execution=execution)
+        self.store.append_trace(trace)
+        prior = self.store.list_traces(goal_key=goal_key)
+        decision = self.lifecycle.consider(trace, prior)
+        if decision.accepted and decision.skill is not None:
+            self.skills.add(decision.skill)
+            self.store.save_skills(self.skills)
+            return decision.skill
+        return None
 
 
 def explain_plan(plan: TaskPlan, *, skill: SkillDefinition | None = None, source: str = "planner") -> str:
