@@ -79,3 +79,28 @@ def test_print_ask_plan_memory_language_is_plain(capsys):
     assert "rollback" not in output
     assert "audit" not in output
     assert "manifest" not in output
+
+
+def test_print_ask_plan_shows_context_focus_path(capsys):
+    plan = BrainPlan(
+        goal="organize invoices",
+        intent="organize_files",
+        next_step="preview organize plan",
+        needs_user_approval=False,
+        confidence=0.75,
+        metadata={
+            "task_card": make_preview_card(
+                title="Organize your files",
+                user_request="organize invoices",
+                plan=["Look at the selected folder"],
+                needs_confirmation=False,
+            ).to_dict(),
+            "memory_used": [{"id": "mem_1", "scope": "project", "wing": "project", "score": 2.0}],
+            "context_focus_path": "project/customers/acme/invoices",
+        },
+    )
+
+    print_ask_plan(plan, wants_json=False)
+
+    output = capsys.readouterr().out
+    assert "Context path: project/customers/acme/invoices" in output
