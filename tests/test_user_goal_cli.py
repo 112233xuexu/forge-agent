@@ -2,6 +2,7 @@ import json
 import sys
 
 from forge_agent.entrypoint import cli_entrypoint
+from forge_agent.user_goal_store import UserGoalStore
 
 
 def test_do_default_keeps_legacy_task_record(monkeypatch, capsys, tmp_path):
@@ -61,3 +62,20 @@ def test_do_execute_runs_safe_local_plan(monkeypatch, capsys, tmp_path):
     assert data["status"] == "completed"
     assert data["mode"] == "execute"
     assert data["execution"]["status"] == "completed"
+
+
+def test_do_execute_persists_learning_state(monkeypatch, capsys, tmp_path):
+    for value in ["one", "two"]:
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["forge-agent", "--workspace", str(tmp_path), "do", "--execute", "Summarize", "these", "notes:", value],
+        )
+        assert cli_entrypoint() == 0
+        capsys.readouterr()
+
+    store = UserGoalStore(tmp_path / "state.db")
+    try:
+        assert store.to_status() == {"skill_count": 1, "trace_count": 2}
+    finally:
+        store.close()
