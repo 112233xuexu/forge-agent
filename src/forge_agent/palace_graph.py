@@ -157,7 +157,8 @@ class PalaceGraph:
             if node.path in query.lower():
                 score += 1.0
             depth_bonus = min(node.path.count("/"), 8) * 0.01
-            results.append(PalaceSearchResult(node=node, score=round(score + depth_bonus, 4), reason="token overlap"))
+            concrete_bonus = 0.05 if node.kind != "folder" else 0.0
+            results.append(PalaceSearchResult(node=node, score=round(score + depth_bonus + concrete_bonus, 4), reason="token overlap"))
         results.sort(key=lambda item: (item.score, item.node.updated_at, item.node.path), reverse=True)
         return results[: max(0, limit)]
 
