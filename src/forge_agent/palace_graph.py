@@ -9,7 +9,7 @@ import re
 from .models import MemoryRecallHit, utc_now
 
 
-_TOKEN_RE = re.compile(r"[a-z0-9_\-/]+", re.IGNORECASE)
+_TOKEN_RE = re.compile(r"[a-z0-9]+", re.IGNORECASE)
 
 
 @dataclass(slots=True)
@@ -156,7 +156,8 @@ class PalaceGraph:
             score = len(overlap) / max(1, len(query_tokens | candidate_tokens))
             if node.path in query.lower():
                 score += 1.0
-            results.append(PalaceSearchResult(node=node, score=round(score, 4), reason="token overlap"))
+            depth_bonus = min(node.path.count("/"), 8) * 0.01
+            results.append(PalaceSearchResult(node=node, score=round(score + depth_bonus, 4), reason="token overlap"))
         results.sort(key=lambda item: (item.score, item.node.updated_at, item.node.path), reverse=True)
         return results[: max(0, limit)]
 
