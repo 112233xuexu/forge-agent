@@ -16,6 +16,7 @@ def test_capabilities_human_output(monkeypatch, capsys, tmp_path):
     assert "rewrite-text" in output
     assert "organize-folder" in output
     assert "user-flow-demo" in output
+    assert "product-smoke-check" in output
 
 
 def test_capabilities_json_output(monkeypatch, capsys, tmp_path):
@@ -29,6 +30,7 @@ def test_capabilities_json_output(monkeypatch, capsys, tmp_path):
     assert names == [
         "draft-follow-up",
         "organize-folder",
+        "product-smoke-check",
         "readiness-demo-validation",
         "restore-folder-organization",
         "rewrite-text",
@@ -38,3 +40,5 @@ def test_capabilities_json_output(monkeypatch, capsys, tmp_path):
     ]
     organize = next(item for item in data["capabilities"] if item["name"] == "organize-folder")
     assert organize["metadata"]["supports_restore"] is True
+    smoke = next(item for item in data["capabilities"] if item["name"] == "product-smoke-check")
+    assert smoke["metadata"]["entrypoint"] == "smoke"
