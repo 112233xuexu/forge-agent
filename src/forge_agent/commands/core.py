@@ -5,6 +5,7 @@ import json
 
 from forge_agent.default_tools import default_user_tools
 from forge_agent.runtime import ForgeRuntime
+from forge_agent.user_file_flow import format_file_flow_human, maybe_run_file_goal
 from forge_agent.user_goal import UserGoalResult, UserGoalRunner
 from forge_agent.user_goal_store import UserGoalStore
 
@@ -38,6 +39,13 @@ def handle_do(args: argparse.Namespace, runtime: ForgeRuntime) -> int:
     if args.preview or args.explain or args.execute:
         mode = "execute" if args.execute else "explain" if args.explain else "preview"
         runtime.init_workspace()
+        file_result = maybe_run_file_goal(goal, workspace=runtime.workspace, mode=mode)
+        if file_result is not None:
+            if args.human:
+                print(format_file_flow_human(file_result))
+            else:
+                print(json.dumps(file_result.to_dict(), ensure_ascii=False, indent=2))
+            return 0 if file_result.status != "input_required" else 2
         store = UserGoalStore(runtime.workspace / "state.db")
         try:
             result = UserGoalRunner(default_user_tools(), store=store).run(goal, mode=mode)
