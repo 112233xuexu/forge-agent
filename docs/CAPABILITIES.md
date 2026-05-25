@@ -22,6 +22,7 @@ Current local abilities:
 - restore the latest file organization operation
 - run a complete local user-flow demo with pass/fail checks
 - run readiness checks with optional demo validation
+- run a short product smoke check for capabilities and the user-flow demo
 
 ## File organization through `do`
 
@@ -92,3 +93,19 @@ forge-agent readiness --run-demo --json
 ```
 
 The demo validation path reports whether the local user-flow demo passed, including explicit checks and final file state.
+
+## Product smoke check
+
+Run a short local product smoke check:
+
+```bash
+forge-agent smoke
+```
+
+Structured output:
+
+```bash
+forge-agent smoke --json
+```
+
+The smoke check verifies that the public capability registry is populated and that the local user-flow demo passes.
