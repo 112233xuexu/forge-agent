@@ -8,6 +8,7 @@ from forge_agent.runtime import ForgeRuntime
 from forge_agent.user_file_flow import format_file_flow_human, maybe_run_file_goal
 from forge_agent.user_goal import UserGoalResult, UserGoalRunner
 from forge_agent.user_goal_store import UserGoalStore
+from forge_agent.user_restore_flow import format_restore_flow_human, maybe_run_restore_goal
 
 
 def add_core_parsers(subparsers):
@@ -39,6 +40,13 @@ def handle_do(args: argparse.Namespace, runtime: ForgeRuntime) -> int:
     if args.preview or args.explain or args.execute:
         mode = "execute" if args.execute else "explain" if args.explain else "preview"
         runtime.init_workspace()
+        restore_result = maybe_run_restore_goal(goal, workspace=runtime.workspace, mode=mode)
+        if restore_result is not None:
+            if args.human:
+                print(format_restore_flow_human(restore_result))
+            else:
+                print(json.dumps(restore_result.to_dict(), ensure_ascii=False, indent=2))
+            return 0
         file_result = maybe_run_file_goal(goal, workspace=runtime.workspace, mode=mode)
         if file_result is not None:
             if args.human:
