@@ -150,6 +150,15 @@ def default_plugin_registry() -> PluginRegistry:
             metadata={"entrypoint": "readiness", "reports_checks": True},
         )
     )
+    registry.register(
+        PluginCapability(
+            name="product-smoke-check",
+            tool_name="smoke_check",
+            description="Run a short local product smoke check for capabilities and the user-flow demo.",
+            examples=["forge-agent smoke", "forge-agent smoke --json"],
+            metadata={"entrypoint": "smoke", "reports_checks": True},
+        )
+    )
     return registry
 
 
@@ -157,7 +166,7 @@ def register_plugin_tools(registry: PluginRegistry, tools: ToolRegistry) -> list
     missing: list[str] = []
     for capability in registry.list():
         tool_name = capability.tool_name
-        if tool_name.startswith(("do_", "demo_", "readiness_")):
+        if tool_name.startswith(("do_", "demo_", "readiness_", "smoke_")):
             continue
         if not tools.has(tool_name):
             missing.append(tool_name)

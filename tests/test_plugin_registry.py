@@ -9,6 +9,7 @@ def test_default_plugin_registry_lists_local_capabilities():
     assert names == [
         "draft-follow-up",
         "organize-folder",
+        "product-smoke-check",
         "readiness-demo-validation",
         "restore-folder-organization",
         "rewrite-text",
@@ -19,6 +20,7 @@ def test_default_plugin_registry_lists_local_capabilities():
     assert registry.get("summarize-notes").tool_name == "summarize_notes"
     assert registry.get("organize-folder").metadata["supports_preview"] is True
     assert registry.get("user-flow-demo").metadata["reports_checks"] is True
+    assert registry.get("product-smoke-check").metadata["entrypoint"] == "smoke"
 
 
 def test_plugin_registry_finds_capabilities_for_goal():
@@ -34,6 +36,7 @@ def test_plugin_registry_finds_file_and_demo_capabilities():
 
     assert registry.find_for_goal("organize folder invoices")[0].name == "organize-folder"
     assert registry.find_for_goal("run user flow demo")[0].name == "user-flow-demo"
+    assert registry.find_for_goal("run smoke check")[0].name == "product-smoke-check"
 
 
 def test_plugin_registry_roundtrip():
