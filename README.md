@@ -238,6 +238,7 @@ See `docs/ARCHITECTURE_OVERVIEW.md` for details.
 ## Project docs
 
 - `docs/ARCHITECTURE_OVERVIEW.md`
+- `docs/CAPABILITIES.md`
 - `docs/OPEN_SOURCE_RELEASE_CHECKLIST.md`
 - `docs/PRO_APPLICATION_READY.md`
 - `docs/STABILIZATION_AUDIT.md`
