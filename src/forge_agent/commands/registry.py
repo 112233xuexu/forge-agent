@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 
 from forge_agent.commands.approvals import add_approvals_parser, handle_approvals
+from forge_agent.commands.capabilities import add_capabilities_parser, handle_capabilities
 from forge_agent.commands.core import add_core_parsers, handle_do, handle_doctor, handle_init
 from forge_agent.commands.demo import add_demo_parser, handle_demo
 from forge_agent.commands.history import add_history_parser, handle_history
@@ -17,6 +18,7 @@ from forge_agent.runtime import ForgeRuntime
 
 def add_all_command_parsers(subparsers):
     add_core_parsers(subparsers)
+    add_capabilities_parser(subparsers)
     add_organize_parsers(subparsers)
     add_memory_parser(subparsers)
     add_history_parser(subparsers)
@@ -36,6 +38,8 @@ def route_command(args: argparse.Namespace, parser: argparse.ArgumentParser, run
         return handle_do(args, runtime)
     if command == "doctor":
         return handle_doctor(args, runtime)
+    if command == "capabilities":
+        return handle_capabilities(args)
     if command == "organize":
         return handle_organize(args)
     if command == "organize-rollback":
