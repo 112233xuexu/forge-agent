@@ -13,6 +13,7 @@ from forge_agent.commands.organize import add_organize_parsers, handle_organize,
 from forge_agent.commands.readiness import add_readiness_parser, handle_readiness
 from forge_agent.commands.schedule import add_schedule_parser, handle_schedule
 from forge_agent.commands.skills import add_skills_parser, handle_skills
+from forge_agent.commands.smoke import add_smoke_parser, handle_smoke
 from forge_agent.commands.tasks import add_tasks_parser, handle_tasks
 from forge_agent.runtime import ForgeRuntime
 
@@ -21,6 +22,7 @@ def add_all_command_parsers(subparsers):
     add_core_parsers(subparsers)
     add_capabilities_parser(subparsers)
     add_readiness_parser(subparsers)
+    add_smoke_parser(subparsers)
     add_organize_parsers(subparsers)
     add_memory_parser(subparsers)
     add_history_parser(subparsers)
@@ -44,6 +46,8 @@ def route_command(args: argparse.Namespace, parser: argparse.ArgumentParser, run
         return handle_capabilities(args)
     if command == "readiness":
         return handle_readiness(args)
+    if command == "smoke":
+        return handle_smoke(args)
     if command == "organize":
         return handle_organize(args)
     if command == "organize-rollback":
