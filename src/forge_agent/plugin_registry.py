@@ -36,12 +36,7 @@ class PluginCapability:
 
 
 class PluginRegistry:
-    """Small public capability registry for local tools.
-
-    This is not a connector system. It only describes and registers local
-    deterministic tools so the user-goal runner and docs can explain what Forge
-    can do today.
-    """
+    """Small public capability registry for local tools and user commands."""
 
     def __init__(self) -> None:
         self.capabilities: dict[str, PluginCapability] = {}
@@ -116,14 +111,56 @@ def default_plugin_registry() -> PluginRegistry:
             examples=["draft a follow up", "write follow up next steps"],
         )
     )
+    registry.register(
+        PluginCapability(
+            name="organize-folder",
+            tool_name="do_file_organize",
+            description="Preview and run safe local folder organization for invoice or receipt files.",
+            inputs=["source_folder"],
+            examples=["forge-agent do --preview --human organize folder ./invoices", "forge-agent do --execute organize folder ./invoices"],
+            risk_level="medium",
+            metadata={"entrypoint": "do", "supports_preview": True, "supports_execute": True, "supports_restore": True},
+        )
+    )
+    registry.register(
+        PluginCapability(
+            name="restore-folder-organization",
+            tool_name="do_restore_organize",
+            description="Restore the latest local file organization operation.",
+            examples=["forge-agent do --preview --human undo last organize", "forge-agent do --execute undo last organize"],
+            risk_level="medium",
+            metadata={"entrypoint": "do", "supports_preview": True, "supports_execute": True},
+        )
+    )
+    registry.register(
+        PluginCapability(
+            name="user-flow-demo",
+            tool_name="demo_user_flow",
+            description="Run a complete local demo with preview, execute, restore, pass/fail checks, and final file state.",
+            examples=["forge-agent demo --kind user-flow", "forge-agent demo --kind user-flow --json"],
+            metadata={"entrypoint": "demo", "reports_checks": True},
+        )
+    )
+    registry.register(
+        PluginCapability(
+            name="readiness-demo-validation",
+            tool_name="readiness_run_demo",
+            description="Check repository readiness and optionally run the local user-flow demo validation.",
+            examples=["forge-agent readiness --run-demo", "forge-agent readiness --run-demo --json"],
+            metadata={"entrypoint": "readiness", "reports_checks": True},
+        )
+    )
     return registry
 
 
 def register_plugin_tools(registry: PluginRegistry, tools: ToolRegistry) -> list[str]:
     missing: list[str] = []
     for capability in registry.list():
-        if not tools.has(capability.tool_name):
-            missing.append(capability.tool_name)
+        tool_name = capability.tool_name
+        if tool_name.startswith(("do_", "demo_", "readiness_")):
+            continue
+        if not tools.has(tool_name):
+            missing.append(tool_name)
     return missing
 
 
