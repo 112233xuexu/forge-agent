@@ -29,6 +29,31 @@ def test_readiness_json_output_from_repo_root(monkeypatch, capsys):
     assert "docs/CAPABILITIES.md" in names
 
 
+def test_readiness_json_can_run_demo(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["forge-agent", "readiness", "--run-demo", "--json"])
+
+    exit_code = cli_entrypoint()
+
+    assert exit_code == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["ready"] is True
+    assert data["demo"]["passed"] is True
+    assert all(data["demo"]["checks"].values())
+    assert any(item["name"] == "user-flow-demo" and item["ok"] for item in data["checks"])
+
+
+def test_readiness_human_can_run_demo(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["forge-agent", "readiness", "--run-demo"])
+
+    exit_code = cli_entrypoint()
+
+    assert exit_code == 0
+    output = capsys.readouterr().out
+    assert "Forge Agent readiness: ready" in output
+    assert "ok: user-flow-demo" in output
+    assert "Demo: ok" in output
+
+
 def test_readiness_reports_missing_files(monkeypatch, capsys, tmp_path):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(sys, "argv", ["forge-agent", "readiness", "--json"])
