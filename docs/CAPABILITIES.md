@@ -21,6 +21,7 @@ Current local abilities:
 - preview and run safe folder organization for invoice or receipt files
 - restore the latest file organization operation
 - run a complete local user-flow demo with pass/fail checks
+- run readiness checks with optional demo validation
 
 ## File organization through `do`
 
@@ -69,3 +70,25 @@ forge-agent demo --kind user-flow --json
 ```
 
 The demo creates sample files in a sandbox, previews organization, executes organization, restores the latest organization, and reports explicit pass/fail checks plus final file state.
+
+## Readiness with demo validation
+
+Basic readiness:
+
+```bash
+forge-agent readiness
+```
+
+Readiness plus full local demo validation:
+
+```bash
+forge-agent readiness --run-demo
+```
+
+Structured output:
+
+```bash
+forge-agent readiness --run-demo --json
+```
+
+The demo validation path reports whether the local user-flow demo passed, including explicit checks and final file state.
