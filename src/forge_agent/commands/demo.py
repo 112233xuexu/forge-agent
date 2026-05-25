@@ -19,16 +19,23 @@ def handle_demo(args: argparse.Namespace) -> int:
         result = run_user_flow_demo(Path(args.workspace) / "demo-user-flow")
         if args.json:
             print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
-            return 0
+            return 0 if result.passed else 1
         print("Forge Agent ordinary-user demo: user flow")
+        print(f"Passed: {result.passed}")
         print(f"Workspace: {result.workspace}")
         print(f"Source: {result.source_dir}")
         print(f"Preview: {result.preview.get('status')}")
         print(f"Execute: {result.execute.get('status')}")
         print(f"Restore: {result.restore.get('status')}")
+        print("Checks:")
+        for name, ok in result.checks.items():
+            print(f"- {'ok' if ok else 'failed'}: {name}")
+        print("Final files:")
+        for item in result.final_files:
+            print(f"- {item}")
         for item in result.audit:
             print(f"- {item}")
-        return 0
+        return 0 if result.passed else 1
 
     result = run_file_organizer_demo(Path(args.workspace) / "demo-file-organizer")
     if args.json:
