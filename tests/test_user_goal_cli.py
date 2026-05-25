@@ -32,6 +32,23 @@ def test_do_preview_uses_user_goal_runner(monkeypatch, capsys, tmp_path):
     assert data["plan"]["steps"][0]["tool_name"] == "summarize_notes"
 
 
+def test_do_preview_human_output(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["forge-agent", "--workspace", str(tmp_path), "do", "--preview", "--human", "Summarize", "these", "notes:", "ship", "update"],
+    )
+
+    exit_code = cli_entrypoint()
+
+    assert exit_code == 0
+    output = capsys.readouterr().out
+    assert "Forge Agent" in output
+    assert "Status: planned" in output
+    assert "Goal:" in output
+    assert "Matched playbook:" in output
+
+
 def test_do_explain_returns_plain_plan(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr(
         sys,
