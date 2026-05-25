@@ -71,12 +71,12 @@ forge-agent ask "organize my invoices by month" --json
 Try the ordinary-user `do` entrypoint:
 
 ```bash
-forge-agent do --preview "Summarize these notes: ship update"
-forge-agent do --explain "Rewrite 'Need approval' in a warmer tone"
-forge-agent do --execute "Summarize these notes: ship update"
+forge-agent do --preview --human "Summarize these notes: ship update"
+forge-agent do --explain --human "Rewrite 'Need approval' in a warmer tone"
+forge-agent do --execute --human "Summarize these notes: ship update"
 ```
 
-`do` without flags keeps the legacy local task-record behavior. `--preview`, `--explain`, and `--execute` use the new user-goal runner path.
+`do` without flags keeps the legacy local task-record behavior. `--preview`, `--explain`, and `--execute` use the user-goal runner path. Add `--human` for a short ordinary-language summary; omit it to keep structured JSON output.
 
 Run the RC10 compatibility smoke tests:
 
@@ -116,9 +116,10 @@ Ordinary-user goal entrypoint:
 
 ```bash
 forge-agent do "capture this goal in my local task ledger"
+forge-agent do --preview --human "Summarize these notes: ship update"
+forge-agent do --explain --human "Rewrite 'Need approval' in a warmer tone"
+forge-agent do --execute --human "Summarize these notes: ship update"
 forge-agent do --preview "Summarize these notes: ship update"
-forge-agent do --explain "Rewrite 'Need approval' in a warmer tone"
-forge-agent do --execute "Summarize these notes: ship update"
 ```
 
 Dry-run-first file organization:
@@ -154,6 +155,7 @@ forge-agent make storyboard "30-second product demo"
 - Local CLI entrypoint: `forge-agent`.
 - Brain Adapter planning through `forge-agent ask`.
 - Ordinary-user `do --preview/--explain/--execute` path backed by `UserGoalRunner`.
+- `do --human` for concise ordinary-language output.
 - Ordinary-user task-card preview.
 - Visible local Memory Palace with bounded recall and ask-time filters.
 - Dry-run-first file organizer.
