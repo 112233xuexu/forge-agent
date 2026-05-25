@@ -24,6 +24,17 @@ def test_user_goal_preview_uses_planner_when_no_skill():
     assert "I made a plan" in result.text
 
 
+def test_user_goal_preview_includes_playbook_hint():
+    runner = UserGoalRunner(make_tools())
+
+    result = runner.run("summarize notes", inputs={"notes": "ship update"}, mode="preview")
+
+    assert result.playbook_match is not None
+    assert result.playbook_match.playbook.name == "meeting-notes-summary"
+    assert result.to_dict()["playbook_match"]["playbook"]["name"] == "meeting-notes-summary"
+    assert "playbook" in result.text.lower()
+
+
 def test_user_goal_execute_runs_local_tools():
     runner = UserGoalRunner(make_tools())
 
@@ -42,6 +53,7 @@ def test_user_goal_reports_missing_inputs():
     assert result.status == "input_required"
     assert result.missing_inputs == ["notes"]
     assert "notes" in result.text
+    assert result.playbook_match is not None
 
 
 def test_user_goal_prefers_matching_skill_and_records_success():
