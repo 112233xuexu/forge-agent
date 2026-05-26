@@ -22,9 +22,15 @@ def handle_smoke(args: argparse.Namespace) -> int:
         "capabilities_available": len(capabilities) >= 8,
         "user_flow_demo_passed": demo.passed,
     }
+    diagnostics: dict[str, Any] = {
+        "problem_checks": [name for name, ok in checks.items() if not ok],
+        "problem_demo_checks": [name for name, ok in demo.checks.items() if not ok],
+        "suggested_command": "forge-agent demo --kind user-flow --json" if not demo.passed else "none",
+    }
     payload: dict[str, Any] = {
         "passed": all(checks.values()),
         "checks": checks,
+        "diagnostics": diagnostics,
         "capability_count": len(capabilities),
         "demo": demo.to_dict(),
     }
@@ -36,4 +42,6 @@ def handle_smoke(args: argparse.Namespace) -> int:
         print(f"Capabilities: {len(capabilities)}")
         for name, ok in checks.items():
             print(f"- {'ok' if ok else 'failed'}: {name}")
+        if diagnostics["problem_checks"] or diagnostics["problem_demo_checks"]:
+            print(f"Suggested command: {diagnostics['suggested_command']}")
     return 0 if payload["passed"] else 1
