@@ -56,10 +56,17 @@ python -m pip install -e . pytest
 forge-agent --help
 ```
 
+Run the product smoke check:
+
+```bash
+forge-agent smoke
+```
+
 Run the safe local demo:
 
 ```bash
 forge-agent demo --kind file-organizer
+forge-agent demo --kind user-flow
 ```
 
 Preview a task card:
@@ -154,6 +161,7 @@ forge-agent make storyboard "30-second product demo"
 
 - Local CLI entrypoint: `forge-agent`.
 - Brain Adapter planning through `forge-agent ask`.
+- Product smoke check through `forge-agent smoke`.
 - Ordinary-user `do --preview/--explain/--execute` path backed by `UserGoalRunner`.
 - `do --human` for concise ordinary-language output.
 - Ordinary-user task-card preview.
