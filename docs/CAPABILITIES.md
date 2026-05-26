@@ -108,4 +108,4 @@ Structured output:
 forge-agent smoke --json
 ```
 
-The smoke check verifies that the public capability registry is populated and that the local user-flow demo passes.
+The smoke check verifies that the public capability registry is populated and that the local user-flow demo passes. JSON output includes `diagnostics.problem_checks`, `diagnostics.problem_demo_checks`, and `diagnostics.suggested_command` to make failures easier to inspect in CI logs.
