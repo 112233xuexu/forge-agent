@@ -27,5 +27,10 @@ def test_smoke_json_output(monkeypatch, capsys, tmp_path):
     assert data["passed"] is True
     assert data["checks"]["capabilities_available"] is True
     assert data["checks"]["user_flow_demo_passed"] is True
+    assert data["diagnostics"] == {
+        "problem_checks": [],
+        "problem_demo_checks": [],
+        "suggested_command": "none",
+    }
     assert data["capability_count"] >= 8
     assert data["demo"]["passed"] is True
