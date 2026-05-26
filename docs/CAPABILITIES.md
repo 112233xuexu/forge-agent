@@ -82,7 +82,7 @@ Structured output:
 forge-agent demo --kind user-flow --json
 ```
 
-The demo creates sample files in a sandbox, previews organization, executes organization, restores the latest organization, and reports explicit pass/fail checks plus final file state.
+The demo creates sample files in a sandbox, previews organization, executes organization, restores the latest organization, and reports explicit pass/fail checks plus final file state. It also checks localized goal routing for file organization and restore previews.
 
 ## Readiness with demo validation
 
@@ -120,4 +120,4 @@ Structured output:
 forge-agent smoke --json
 ```
 
-The smoke check verifies that the public capability registry is populated and that the local user-flow demo passes. JSON output includes `diagnostics.problem_checks`, `diagnostics.problem_demo_checks`, and `diagnostics.suggested_command` to make failures easier to inspect in CI logs.
+The smoke check verifies that the public capability registry is populated and that the local user-flow demo passes, including localized goal-routing checks. JSON output includes `diagnostics.problem_checks`, `diagnostics.problem_demo_checks`, and `diagnostics.suggested_command` to make failures easier to inspect in CI logs.
