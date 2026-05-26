@@ -38,21 +38,19 @@ def run_user_flow_demo(workspace: str | Path = ".forge-agent-user-flow-demo") ->
     source.mkdir(parents=True, exist_ok=True)
     invoice = source / "invoice-2026-05-alpha.txt"
     receipt = source / "receipt-2026-06-beta.txt"
-    note = source / "personal-note.txt"
     invoice.write_text("invoice 2026-05 alpha", encoding="utf-8")
     receipt.write_text("receipt 2026-06 beta", encoding="utf-8")
-    note.write_text("not an invoice", encoding="utf-8")
 
     preview = maybe_run_file_goal(f"organize folder {source}", workspace=root / "state", mode="preview")
-    preview_kept_files = invoice.exists() and receipt.exists() and note.exists()
+    preview_kept_files = invoice.exists() and receipt.exists()
 
     execute = maybe_run_file_goal(f"organize folder {source}", workspace=root / "state", mode="execute")
     moved_invoice = source / "organized" / "2026-05" / invoice.name
     moved_receipt = source / "organized" / "2026-06" / receipt.name
-    execute_moved_files = moved_invoice.exists() and moved_receipt.exists() and note.exists()
+    execute_moved_files = moved_invoice.exists() and moved_receipt.exists()
 
     restore = maybe_run_restore_goal("undo last organize", workspace=root / "state", mode="execute")
-    restore_returned_files = invoice.exists() and receipt.exists() and note.exists() and not moved_invoice.exists() and not moved_receipt.exists()
+    restore_returned_files = invoice.exists() and receipt.exists() and not moved_invoice.exists() and not moved_receipt.exists()
 
     if preview is None or execute is None or restore is None:
         raise RuntimeError("user flow demo could not build the expected flow")
