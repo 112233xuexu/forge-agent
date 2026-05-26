@@ -9,6 +9,10 @@ from .user_file_flow import maybe_run_file_goal
 from .user_restore_flow import maybe_run_restore_goal
 
 
+_LOCALIZED_ORGANIZE_GOAL = "\u6574\u7406 \u6587\u4ef6\u5939 {source}"
+_LOCALIZED_RESTORE_GOAL = "\u64a4\u9500\u4e0a\u6b21\u6587\u4ef6\u6574\u7406"
+
+
 @dataclass(slots=True)
 class UserFlowDemoResult:
     workspace: str
@@ -41,6 +45,9 @@ def run_user_flow_demo(workspace: str | Path = ".forge-agent-user-flow-demo") ->
     invoice.write_text("invoice 2026-05 alpha", encoding="utf-8")
     receipt.write_text("receipt 2026-06 beta", encoding="utf-8")
 
+    localized_preview = maybe_run_file_goal(_LOCALIZED_ORGANIZE_GOAL.format(source=source), workspace=root / "state", mode="preview")
+    localized_restore = maybe_run_restore_goal(_LOCALIZED_RESTORE_GOAL, workspace=root / "state", mode="preview")
+
     preview = maybe_run_file_goal(f"organize folder {source}", workspace=root / "state", mode="preview")
     preview_kept_files = invoice.exists() and receipt.exists()
 
@@ -52,10 +59,12 @@ def run_user_flow_demo(workspace: str | Path = ".forge-agent-user-flow-demo") ->
     restore = maybe_run_restore_goal("undo last organize", workspace=root / "state", mode="execute")
     restore_returned_files = invoice.exists() and receipt.exists() and not moved_invoice.exists() and not moved_receipt.exists()
 
-    if preview is None or execute is None or restore is None:
+    if preview is None or execute is None or restore is None or localized_preview is None or localized_restore is None:
         raise RuntimeError("user flow demo could not build the expected flow")
 
     checks = {
+        "localized_preview_status_planned": localized_preview.status == "planned",
+        "localized_restore_status_planned": localized_restore.status == "planned",
         "preview_did_not_move_files": preview_kept_files,
         "execute_moved_invoice_files": execute_moved_files,
         "restore_returned_files": restore_returned_files,
@@ -75,6 +84,8 @@ def run_user_flow_demo(workspace: str | Path = ".forge-agent-user-flow-demo") ->
         final_files=final_files,
         audit=[
             "created sample invoice folder",
+            "verified localized preview goal routing",
+            "verified localized restore goal routing",
             "previewed organization through user goal flow",
             "verified preview kept files in place",
             "executed organization through user goal flow",
