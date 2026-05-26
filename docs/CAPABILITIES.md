@@ -32,6 +32,12 @@ Preview first:
 forge-agent do --preview --human "organize folder ./invoices"
 ```
 
+Localized preview example:
+
+```bash
+forge-agent do --preview --human "整理 文件夹 ./invoices"
+```
+
 Run after review:
 
 ```bash
@@ -46,6 +52,12 @@ Preview restore:
 
 ```bash
 forge-agent do --preview --human "undo last organize"
+```
+
+Localized preview example:
+
+```bash
+forge-agent do --preview --human "撤销上次文件整理"
 ```
 
 Run restore:
