@@ -7,6 +7,10 @@ from typing import Any
 from .organizer import FileOrganizer, RollbackResult
 
 
+_CN_RESTORE_TERMS = ("\u64a4\u9500", "\u6062\u590d", "\u56de\u6eda", "\u8fd8\u539f")
+_CN_TARGET_TERMS = ("\u6574\u7406", "\u6587\u4ef6\u5939", "\u76ee\u5f55", "\u6587\u4ef6")
+
+
 @dataclass(slots=True)
 class UserRestoreFlowResult:
     goal: str
@@ -61,6 +65,6 @@ def format_restore_flow_human(result: UserRestoreFlowResult) -> str:
 
 def _looks_like_restore(goal: str) -> bool:
     lowered = goal.lower()
-    return any(term in lowered for term in ("undo", "restore", "rollback", "roll back")) and any(
-        term in lowered for term in ("organize", "organization", "folder", "files")
-    )
+    restore_terms = ("undo", "restore", "rollback", "roll back", *_CN_RESTORE_TERMS)
+    target_terms = ("organize", "organization", "folder", "files", *_CN_TARGET_TERMS)
+    return any(term in lowered for term in restore_terms) and any(term in lowered for term in target_terms)

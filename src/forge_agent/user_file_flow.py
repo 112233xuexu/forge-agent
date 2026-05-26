@@ -8,6 +8,11 @@ import re
 from .organizer import FileOrganizer, OrganizeResult
 
 
+_CN_ORGANIZE_TERMS = ("\u6574\u7406", "\u5f52\u7c7b", "\u5206\u7c7b")
+_CN_TARGET_TERMS = ("\u6587\u4ef6\u5939", "\u76ee\u5f55", "\u6587\u4ef6", "\u53d1\u7968", "\u6536\u636e")
+_CN_PATH_WORDS = "\u6587\u4ef6\u5939|\u76ee\u5f55|\u8def\u5f84"
+
+
 @dataclass(slots=True)
 class UserFileFlowResult:
     goal: str
@@ -80,15 +85,17 @@ def format_file_flow_human(result: UserFileFlowResult) -> str:
 
 def _looks_like_file_organize(goal: str) -> bool:
     lowered = goal.lower()
-    return ("organize" in lowered or "sort" in lowered) and any(term in lowered for term in ("folder", "files", "invoices", "receipts", "directory"))
+    organize_terms = ("organize", "sort", *_CN_ORGANIZE_TERMS)
+    target_terms = ("folder", "files", "invoices", "receipts", "directory", *_CN_TARGET_TERMS)
+    return any(term in lowered for term in organize_terms) and any(term in lowered for term in target_terms)
 
 
 def _extract_source(goal: str) -> str:
     quoted = re.search(r"['\"]([^'\"]+)['\"]", goal)
     if quoted:
         return quoted.group(1).strip()
-    match = re.search(r"(?:folder|directory|dir|from|in)\s+([^\s]+)", goal, flags=re.IGNORECASE)
+    match = re.search(rf"(?:folder|directory|dir|from|in|{_CN_PATH_WORDS})\s*[:：]?\s*([^\s，。；;]+)", goal, flags=re.IGNORECASE)
     if match:
         return match.group(1).strip()
-    path_like = re.search(r"(\.?\.?/[A-Za-z0-9_./-]+|[A-Za-z]:\\[^\s]+)", goal)
+    path_like = re.search(r"(\.?\.?/[A-Za-z0-9_./-]+|[A-Za-z]:\\[^\s，。；;]+)", goal)
     return path_like.group(1).strip() if path_like else ""
