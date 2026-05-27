@@ -94,6 +94,9 @@ def _extract_source(goal: str) -> str:
     quoted = re.search(r"['\"]([^'\"]+)['\"]", goal)
     if quoted:
         return quoted.group(1).strip()
+    explicit = re.search(r"(?:--path|--source|path|source)\s*[=:]?\s*([^\s，。；;]+)", goal, flags=re.IGNORECASE)
+    if explicit:
+        return explicit.group(1).strip()
     match = re.search(rf"(?:folder|directory|dir|from|in|{_CN_PATH_WORDS})\s*[:：]?\s*([^\s，。；;]+)", goal, flags=re.IGNORECASE)
     if match:
         return match.group(1).strip()
