@@ -19,6 +19,10 @@ def test_desktop_adapter_health(tmp_path):
 
     assert response.status == "ok"
     assert response.payload["action"] == "health"
+    assert response.schema_version == "desktop.v1"
+    assert response.kind == "desktop_response"
+    assert response.needs_confirmation is False
+    assert response.next_actions == ["plan"]
     runtime.close()
 
 
@@ -30,6 +34,8 @@ def test_desktop_adapter_plans_local_request(tmp_path):
 
     assert response.status == "planned"
     assert response.payload["payload"]["route"]["plan"]["steps"][0]["tool_name"] == "summarize_notes"
+    assert response.needs_confirmation is True
+    assert response.next_actions == ["execute"]
     runtime.close()
 
 
@@ -41,6 +47,8 @@ def test_desktop_adapter_executes_when_requested(tmp_path):
 
     assert response.status == "completed"
     assert response.payload["payload"]["execution"]["status"] == "completed"
+    assert response.needs_confirmation is False
+    assert response.next_actions == ["plan"]
     runtime.close()
 
 
@@ -52,4 +60,8 @@ def test_desktop_adapter_json_roundtrip(tmp_path):
     response = json.loads(adapter.handle_json(content))
 
     assert response["status"] == "ok"
+    assert response["schema_version"] == "desktop.v1"
+    assert response["kind"] == "desktop_response"
+    assert response["needs_confirmation"] is False
+    assert response["next_actions"] == ["plan"]
     runtime.close()
