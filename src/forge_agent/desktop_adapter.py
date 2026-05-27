@@ -9,6 +9,9 @@ from .models import utc_now
 from .runtime_compat import CompatRuntime
 
 
+DESKTOP_CONTRACT_VERSION = "desktop.v1"
+
+
 @dataclass(slots=True)
 class DesktopRequest:
     request_id: str
@@ -57,6 +60,10 @@ class DesktopResponse:
     text: str
     payload: dict[str, Any] = field(default_factory=dict)
     created_at: str = field(default_factory=utc_now)
+    schema_version: str = DESKTOP_CONTRACT_VERSION
+    kind: str = "desktop_response"
+    needs_confirmation: bool = False
+    next_actions: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -66,7 +73,7 @@ class DesktopResponse:
 
 
 class DesktopAdapter:
-    """Small local-client adapter around CompatRuntime."""
+    """Small stable local-client adapter around CompatRuntime."""
 
     def __init__(self, runtime: CompatRuntime) -> None:
         self.runtime = runtime
@@ -75,19 +82,27 @@ class DesktopAdapter:
         envelope = request if isinstance(request, DesktopRequest) else DesktopRequest.from_dict(request)
         action = envelope.action.lower().strip()
         if action in {"ping", "health"}:
-            return DesktopResponse(envelope.request_id, "ok", "Forge Agent is ready.", {"action": action})
+            return DesktopResponse(envelope.request_id, "ok", "Forge Agent is ready.", {"action": action}, next_actions=["plan"])
         if action not in {"plan", "run", "execute"}:
-            return DesktopResponse(envelope.request_id, "unsupported", f"Unsupported action: {envelope.action}", {"action": envelope.action})
+            return DesktopResponse(envelope.request_id, "unsupported", f"Unsupported action: {envelope.action}", {"action": envelope.action}, next_actions=["plan"])
+        execute = action == "execute" or bool(envelope.options.get("execute", False))
         result = self.runtime.run_turn(
             envelope.session_id,
             envelope.text,
             channel="desktop",
             user_id=envelope.user_id,
             inputs=envelope.inputs,
-            execute=action == "execute" or bool(envelope.options.get("execute", False)),
+            execute=execute,
             govern=bool(envelope.options.get("govern", False)),
         )
-        return DesktopResponse(envelope.request_id, result.status, result.text, result.to_dict())
+        return DesktopResponse(
+            envelope.request_id,
+            result.status,
+            result.text,
+            result.to_dict(),
+            needs_confirmation=not execute and result.status == "planned",
+            next_actions=["execute"] if not execute and result.status == "planned" else ["plan"],
+        )
 
     def handle_json(self, content: str) -> str:
         return self.handle(json.loads(content)).to_json()
