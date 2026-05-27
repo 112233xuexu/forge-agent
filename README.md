@@ -173,6 +173,7 @@ forge-agent make storyboard "30-second product demo"
 - Local skill lifecycle controls.
 - Local content skill packs.
 - Structured JSON errors for supported file-related failures.
+- Stable `desktop_adapter.py` response contract for local UI shells.
 - RC10 compatibility slices for memory, state, planner, gateway, workflow, execution, governance, context graph, desktop/client payloads, HTTP payloads, and benchmark smoke checks.
 
 ## RC10 compatibility migration
@@ -247,6 +248,7 @@ See `docs/ARCHITECTURE_OVERVIEW.md` for details.
 
 - `docs/ARCHITECTURE_OVERVIEW.md`
 - `docs/CAPABILITIES.md`
+- `docs/DESKTOP_ADAPTER_CONTRACT.md`
 - `docs/OPEN_SOURCE_RELEASE_CHECKLIST.md`
 - `docs/PRO_APPLICATION_READY.md`
 - `docs/STABILIZATION_AUDIT.md`
