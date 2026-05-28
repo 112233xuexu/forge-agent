@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 import re
@@ -11,6 +11,7 @@ from .organizer import FileOrganizer, OrganizeResult
 _CN_ORGANIZE_TERMS = ("\u6574\u7406", "\u5f52\u7c7b", "\u5206\u7c7b")
 _CN_TARGET_TERMS = ("\u6587\u4ef6\u5939", "\u76ee\u5f55", "\u6587\u4ef6", "\u53d1\u7968", "\u6536\u636e")
 _CN_PATH_WORDS = "\u6587\u4ef6\u5939|\u76ee\u5f55|\u8def\u5f84"
+_STOP_CHARS = "\u0020\u3001\u3002\uff0c\uff1b;"
 
 
 @dataclass(slots=True)
@@ -94,11 +95,11 @@ def _extract_source(goal: str) -> str:
     quoted = re.search(r"['\"]([^'\"]+)['\"]", goal)
     if quoted:
         return quoted.group(1).strip()
-    explicit = re.search(r"(?:--path|--source|path|source)\s*[=:]?\s*([^\s，。；;]+)", goal, flags=re.IGNORECASE)
+    explicit = re.search(rf"(?:--path|--source|path|source)\s*[=:]?\s*([^\\s{_STOP_CHARS}]+)", goal, flags=re.IGNORECASE)
     if explicit:
         return explicit.group(1).strip()
-    match = re.search(rf"(?:folder|directory|dir|from|in|{_CN_PATH_WORDS})\s*[:：]?\s*([^\s，。；;]+)", goal, flags=re.IGNORECASE)
+    match = re.search(rf"(?:folder|directory|dir|from|in|{_CN_PATH_WORDS})\s*[:\uff1a]?\s*([^\\s{_STOP_CHARS}]+)", goal, flags=re.IGNORECASE)
     if match:
         return match.group(1).strip()
-    path_like = re.search(r"(\.?\.?/[A-Za-z0-9_./-]+|[A-Za-z]:\\[^\s，。；;]+)", goal)
+    path_like = re.search(rf"(\.?\.?/[A-Za-z0-9_./-]+|[A-Za-z]:\\[^\\s{_STOP_CHARS}]+)", goal)
     return path_like.group(1).strip() if path_like else ""
