@@ -18,6 +18,8 @@ def test_http_adapter_health(tmp_path):
     response = adapter.handle(HttpRequestEnvelope(method="GET", path="/health"))
     assert response.status_code == 200
     assert response.body["status"] == "ok"
+    assert response.body["schema_version"] == "desktop.v1"
+    assert response.body["kind"] == "desktop_response"
     runtime.close()
 
 
@@ -31,4 +33,8 @@ def test_http_adapter_run_payload(tmp_path):
     response = adapter.handle(envelope)
     assert response.status_code == 200
     assert response.body["status"] == "planned"
+    assert response.body["schema_version"] == "desktop.v1"
+    assert response.body["kind"] == "desktop_response"
+    assert response.body["needs_confirmation"] is True
+    assert response.body["next_actions"] == ["execute"]
     runtime.close()
