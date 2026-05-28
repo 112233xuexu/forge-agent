@@ -8,6 +8,9 @@ from .desktop_adapter import DesktopAdapter, DesktopRequest
 from .models import utc_now
 
 
+_CLIENT_ERROR_STATUSES = {"unsupported", "blocked"}
+
+
 @dataclass(slots=True)
 class HttpRequestEnvelope:
     method: str
@@ -59,5 +62,5 @@ class HttpAdapter:
         payload = dict(envelope.body)
         payload.setdefault("action", action)
         response = self.desktop.handle(payload)
-        status_code = 200 if response.status not in {"unsupported", "blocked"} else 400
+        status_code = 400 if response.status in _CLIENT_ERROR_STATUSES else 200
         return HttpResponseEnvelope(status_code, response.to_dict())
