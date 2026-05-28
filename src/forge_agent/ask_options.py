@@ -75,15 +75,14 @@ def parse_ask_options(argv: list[str]) -> AskOptions:
             index += 1
             continue
         if item == "--memory-limit":
-            if index + 1 >= len(argv):
+            value, index = consume_option_value(argv, index)
+            if value is None:
                 memory_limit = -1
-                index += 1
                 continue
             try:
-                memory_limit = int(argv[index + 1])
+                memory_limit = int(value)
             except ValueError:
                 memory_limit = -1
-            index += 2
             continue
         if item.startswith("--memory-limit="):
             try:
