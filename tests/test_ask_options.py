@@ -66,9 +66,9 @@ def test_parse_ask_options_missing_memory_limit_marks_error():
     assert options.goal_parts == []
 
 
-def test_parse_ask_options_missing_filter_value_does_not_crash():
-    options = parse_ask_options(["--memory-scope", "--memory-wing"])
+def test_parse_ask_options_missing_filter_value_does_not_consume_next_flag():
+    options = parse_ask_options(["--memory-scope", "--memory-wing", "skills", "organize"])
 
-    assert options.memory_scopes == {"--memory-wing"}
-    assert options.memory_wings == set()
-    assert options.goal_parts == []
+    assert options.memory_scopes == set()
+    assert options.memory_wings == {"skills"}
+    assert options.goal_parts == ["organize"]
