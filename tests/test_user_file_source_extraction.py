@@ -32,3 +32,14 @@ def test_file_goal_extracts_source_equals(tmp_path):
     assert result is not None
     assert result.status == "explained"
     assert result.source == str(source)
+
+
+def test_file_goal_extracts_localized_colon_path(tmp_path):
+    source = tmp_path / "invoices"
+    source.mkdir()
+
+    result = maybe_run_file_goal(f"\u6574\u7406 \u6587\u4ef6\u5939\uff1a{source}", workspace=tmp_path / "state", mode="explain")
+
+    assert result is not None
+    assert result.status == "explained"
+    assert result.source == str(source)
