@@ -108,4 +108,7 @@ def parse_ask_options(argv: list[str]) -> AskOptions:
 def consume_option_value(argv: list[str], index: int) -> tuple[str | None, int]:
     if index + 1 >= len(argv):
         return None, index + 1
-    return argv[index + 1].strip(), index + 2
+    value = argv[index + 1].strip()
+    if value.startswith("--"):
+        return None, index + 1
+    return value, index + 2
