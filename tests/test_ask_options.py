@@ -66,6 +66,14 @@ def test_parse_ask_options_missing_memory_limit_marks_error():
     assert options.goal_parts == []
 
 
+def test_parse_ask_options_missing_memory_limit_does_not_consume_next_flag():
+    options = parse_ask_options(["--memory-limit", "--json", "organize"])
+
+    assert options.memory_limit == -1
+    assert options.wants_json is True
+    assert options.goal_parts == ["organize"]
+
+
 def test_parse_ask_options_missing_filter_value_does_not_consume_next_flag():
     options = parse_ask_options(["--memory-scope", "--memory-wing", "skills", "organize"])
 
